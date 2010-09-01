@@ -3,10 +3,13 @@
   "version": "1.0",
   "description": "The first extension that I made.",
   "background_page": "background.html",
+  "browser_action": {
+    "default_icon": "icon.png",
+    "popup": "popup.html"
+  },
   "permissions": [
     "tabs",
-    "history",
-    "http://www.yahoo.com/", "http://www.cnn.com/",
-    "bookmarks"
+    "bookmarks",
+    "http://www.yahoo.com/"
   ]
 }
