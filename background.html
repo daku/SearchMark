@@ -1,7 +1,7 @@
 <html>
 <head>
-<script>
-  chrome.tabs.onUpdated.addListener(
+<script language="Javascript">
+chrome.tabs.onUpdated.addListener(
   function(tabId, changeInfo, tab) 
   {
     if(changeInfo.status == "complete") {
@@ -13,8 +13,8 @@
     }
   });
 
-  chrome.extension.onRequest.addListener(function(request, sender,
-  callback) {
+chrome.extension.onRequest.addListener(function(request, sender,
+                                                callback) {
   if(request.method == 'store') {
   localStorage[request.arg] = request.arg2;
   chrome.windows.create({'url':'http://www.cnn.com/',
