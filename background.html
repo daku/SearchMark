@@ -6,16 +6,14 @@ chrome.extension.onRequest.addListener(
     function(request, sender, callback) {
         if(request.method == 'search') {
             chrome.bookmarks.getTree(function(bookmarks) {
-                // Connect to popup.html
-                var port = chrome.extension.connect(
-                    {name: "search_results"});
+                var results = [];
 
-                searchBookmarkedPages(bookmarks, request.keywords,
-                port);
+                searchBookmarkedPages(bookmarks, 
+                                      request.keywords, 
+                                      results);
 
-                port.disconnect();
+                callback(results);
             });
-            callback(1);
         }
     });
 
@@ -23,13 +21,9 @@ chrome.extension.onRequest.addListener(
 //     getAndStoreBookmarkContents(bookmarks);
 // });
 
-function searchBookmarkedPages(bookmarks, keywords, port) {
-    port.postMessage("Hello.");
-    var x = 0;
-    while(x < 1000000000) {
-        x++;
-    }
-    port.postMessage("World.");
+function searchBookmarkedPages(bookmarks, keywords, results) {
+    results.push("Search continues.");
+    results.push("Search done.");
 }
 
 function getAndStoreBookmarkContents(bookmarks) {

@@ -8,25 +8,15 @@ body {
 </style>
 <script language="Javascript">
 
-chrome.extension.onConnect.addListener(function(port) {
-  console.assert(port.name == "search_results");
-  port.onMessage.addListener(function(msg) {
-      p = document.createElement("p");
-      text = document.createTextNode(msg);
-      p.appendChild(text);
-      document.body.appendChild(p);
-  });
-});
-
 chrome.extension.sendRequest(
     {method: 'search', keywords: 'embedded with rankings'}, 
-    function(response) {
-        if(response == 0) {
+    function(searchResults) {
+        searchResults.forEach(function (result) {
             p = document.createElement("p");
-            text = document.createTextNode("Search failed.");
+            text = document.createTextNode(result);
             p.appendChild(text);
             document.body.appendChild(p);
-        }
+        });
     });
 </script>
 </head>
