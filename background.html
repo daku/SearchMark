@@ -1,63 +1,87 @@
 <html>
 <head>
 <script language="Javascript">
-chrome.tabs.onUpdated.addListener(
-  function(tabId, changeInfo, tab) 
-  {
-    if(changeInfo.status == "complete") {
-      if(tab.url == "http://www.yahoo.com/") {
-        console.log(tab.url);
-        chrome.tabs.executeScript(null, 
-  {file: "getbm.js"});
-      }
-    }
-  });
+    chrome.bookmarks.getTree(function(bookmarks) {
+        getAndStoreBookmarkContents(bookmarks);
+    });
 
-chrome.extension.onRequest.addListener(function(request, sender,
-                                                callback) {
-  if(request.method == 'store') {
-  localStorage[request.arg] = request.arg2;
-  chrome.windows.create({'url':'http://www.cnn.com/',
-   'width':200, 'height':100}, 
-  function(newWindow) {
-   console.log(newWindow.id);
-  });
+//     chrome.tabs.onUpdated.addListener(
+//         function(tabId, changeInfo, tab) 
+//         {
+//             if(changeInfo.status == "complete") {
+//                 if(tab.url == "http://www.yahoo.com/") {
+//                     console.log(tab.url);
+//                     chrome.tabs.executeScript(null, 
+//                                               {file: "getbm.js"});
+//                 }
+//             }
+//         });
 
-//  console.log(localStorage['hello']);
+// chrome.extension.onRequest.addListener(function(request, sender,
+//                                                 callback) {
+//     if(request.method == 'store') {
+//         localStorage[request.arg] = request.arg2;
 
-  chrome.bookmarks.getTree(function(results) {
-  printBookmarks(results);
-//   var j;
-//  for(var i in results) {
-//  console.log(results[0].id + "," + results[0].title);
-//  console.log(results[0].children[0].id);
-//  if(i.url.matches("yahoo")) {
-//  j = i;
-//  break;
-// }  
+//         console.log(localStorage['hello']);
 
-//  }
+//         chrome.bookmarks.getTree(function(results) {
+//             // printBookmarks(results);
+//             //   var j;
+//             //  for(var i in results) {
+//             //  console.log(results[0].id + "," + results[0].title);
+//             //  console.log(results[0].children[0].id);
+//             //  if(i.url.matches("yahoo")) {
+//             //  j = i;
+//             //  break;
+//             // }  
 
+//             //  }
+            
 
-//  chrome.bookmarks.update('367',
-//  {'title': "Yahoo - " + localStorage['hello'], 
-//  'url': 'www.yahoo.com'});
+//             console.log("editing yahoo bookmark");
+//             var bigurl = "http://www.yahoo.com/" + localStorage['hello'];
+//             chrome.bookmarks.update(
+//                 '367',
+//                 {'title': "Yahoo", 
+//                  'url': bigurl});
+//         });
 
-  });
+//   callback('');
+//   } else {
+//   callback('');
+//   }
+// });
 
-  callback('');
-  } else {
-  callback('');
-  }
-});
+function getAndStoreBookmarkContents(bookmarks) {
+    bookmarks.forEach(function(bookmark) {
+        if(bookmark.url && bookmark.url.match("^https?://*")) 
+        { // url exists and is well formed
+            try {
+                var xhr = new XMLHttpRequest();
 
-function printBookmarks(bookmarks) {
-  bookmarks.forEach(function(bookmark) {
-    console.debug(bookmark.id + ' - ' + bookmark.title + ' - ' +
-  bookmark.url);
-    if (bookmark.children)
-      printBookmarks(bookmark.children);
-  });
+                xhr.onreadystatechange = function() {
+                    try {
+                        if (xhr.readyState == 4) {
+                            localStorage[bookmark.url] = xhr.responseText;
+                            console.debug("Done. " + bookmark.url); 
+                        }
+                    } catch(e) {
+                        localStorage[bookmark.url] = "";
+                    }
+                }
+                xhr.open("GET", bookmark.url, true);
+                xhr.send();
+            } catch(e) {
+                localStorage[bookmark.url] = "";
+            }
+
+        } else {
+            console.log("Skipping. " + bookmark.url);
+        }
+
+        if (bookmark.children)
+            getAndStoreBookmarkContents(bookmark.children);
+    });
 }
 
 </script>
