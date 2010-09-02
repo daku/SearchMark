@@ -9,6 +9,9 @@
     "default_popup": "popup.html"
   },
   "permissions": [
-    "bookmarks"
+    "bookmarks",
+    "http://*/*",
+    "https://*/*",
+    "unlimited_storage"
   ]
 }

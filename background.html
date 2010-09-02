@@ -17,13 +17,29 @@ chrome.extension.onRequest.addListener(
         }
     });
 
-// chrome.bookmarks.getTree(function(bookmarks) {
-//     getAndStoreBookmarkContents(bookmarks);
-// });
+chrome.bookmarks.getTree(function(bookmarks) {
+    localStorage.clear();
+    console.log(localStorage.length);
+    getAndStoreBookmarkContents(bookmarks);
+});
 
 function searchBookmarkedPages(bookmarks, keywords, results) {
-    results.push("Search continues.");
-    results.push("Search done.");
+    bookmarks.forEach(function(bookmark) {
+        if(bookmark.url && bookmark.url.match("^https?://*")) 
+        { // url exists and is well formed
+            if(bookmark.url.match(keywords)) {
+                results.push(bookmark.url);
+                console.log(bookmark.url);
+                console.log(localStorage[bookmark.url]);
+            } else if(localStorage[bookmark.url].match(keywords)) {
+                results.push(bookmark.url);
+                console.log(bookmark.url);
+            }
+        }
+        
+        if (bookmark.children)
+            searchBookmarkedPages(bookmark.children, keywords, results);
+    });
 }
 
 function getAndStoreBookmarkContents(bookmarks) {
@@ -31,21 +47,20 @@ function getAndStoreBookmarkContents(bookmarks) {
         if(bookmark.url && bookmark.url.match("^https?://*")) 
         { // url exists and is well formed
             try {
-                var xhr = new XMLHttpRequest();
+                console.debug("Indexing " + bookmark.url); 
 
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", bookmark.url, true);
                 xhr.onreadystatechange = function() {
-                    try {
-                        if (xhr.readyState == 4) {
-                            localStorage[bookmark.url] = xhr.responseText;
-                            console.debug("Done. " + bookmark.url); 
-                        }
-                    } catch(e) {
-                        localStorage[bookmark.url] = "";
+                    if (xhr.readyState == 4) {
+                        localStorage[bookmark.url] =
+                            xhr.responseText;
+                        console.debug(localStorage.length);
                     }
                 }
-                xhr.open("GET", bookmark.url, true);
                 xhr.send();
             } catch(e) {
+                console.log("NET Exception. " + bookmark.url);
                 localStorage[bookmark.url] = "";
             }
 
