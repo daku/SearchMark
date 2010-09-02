@@ -1,56 +1,36 @@
 <html>
 <head>
 <script language="Javascript">
-    chrome.bookmarks.getTree(function(bookmarks) {
-        getAndStoreBookmarkContents(bookmarks);
+
+chrome.extension.onRequest.addListener(
+    function(request, sender, callback) {
+        if(request.method == 'search') {
+            chrome.bookmarks.getTree(function(bookmarks) {
+                // Connect to popup.html
+                var port = chrome.extension.connect(
+                    {name: "search_results"});
+
+                searchBookmarkedPages(bookmarks, request.keywords,
+                port);
+
+                port.disconnect();
+            });
+            callback(1);
+        }
     });
 
-//     chrome.tabs.onUpdated.addListener(
-//         function(tabId, changeInfo, tab) 
-//         {
-//             if(changeInfo.status == "complete") {
-//                 if(tab.url == "http://www.yahoo.com/") {
-//                     console.log(tab.url);
-//                     chrome.tabs.executeScript(null, 
-//                                               {file: "getbm.js"});
-//                 }
-//             }
-//         });
-
-// chrome.extension.onRequest.addListener(function(request, sender,
-//                                                 callback) {
-//     if(request.method == 'store') {
-//         localStorage[request.arg] = request.arg2;
-
-//         console.log(localStorage['hello']);
-
-//         chrome.bookmarks.getTree(function(results) {
-//             // printBookmarks(results);
-//             //   var j;
-//             //  for(var i in results) {
-//             //  console.log(results[0].id + "," + results[0].title);
-//             //  console.log(results[0].children[0].id);
-//             //  if(i.url.matches("yahoo")) {
-//             //  j = i;
-//             //  break;
-//             // }  
-
-//             //  }
-            
-
-//             console.log("editing yahoo bookmark");
-//             var bigurl = "http://www.yahoo.com/" + localStorage['hello'];
-//             chrome.bookmarks.update(
-//                 '367',
-//                 {'title': "Yahoo", 
-//                  'url': bigurl});
-//         });
-
-//   callback('');
-//   } else {
-//   callback('');
-//   }
+// chrome.bookmarks.getTree(function(bookmarks) {
+//     getAndStoreBookmarkContents(bookmarks);
 // });
+
+function searchBookmarkedPages(bookmarks, keywords, port) {
+    port.postMessage("Hello.");
+    var x = 0;
+    while(x < 1000000000) {
+        x++;
+    }
+    port.postMessage("World.");
+}
 
 function getAndStoreBookmarkContents(bookmarks) {
     bookmarks.forEach(function(bookmark) {
