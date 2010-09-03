@@ -2,9 +2,15 @@
 <head>
 <script language="Javascript">
 
+// Bookmarked page database
 var SearchMarkDB = {};
+
+// Contains bookmarks added to the database
+// Only used during first initialization after that
+// its empty.
 var gAddedUrls = [];
 
+// Open the database
 SearchMarkDB.db = null;
 SearchMarkDB.open = function() {
     var dbSize = 200 * 1024 * 1024; // 200 MB
@@ -13,24 +19,37 @@ SearchMarkDB.open = function() {
                                    dbSize);
 }
 
-SearchMarkDB.onError = function(tx, e) {
+// Error and success callbacks
+SearchMarkDB.onErrorCb = function(tx, e) {
     console.log(e.message);
 }
 
-SearchMarkDB.onAdded = function(tx, r) {
+SearchMarkDB.onAddedCb = function(tx, r) {
     console.log("Added. " + gAddedUrls.pop());
 }
 
-SearchMarkDB.onClear = function(tx, r) {
+SearchMarkDB.onClearCb = function(tx, r) {
     console.log("Cleared SearchMark database.");
 }
 
-SearchMarkDB.showAllBookmarks = function(tx, r) {
+// special callback to print all the bookmark
+// URLs once they are retrieved from the database.
+SearchMarkDB.showAllBookmarksCb = function(tx, r) {
     for(var i = 0; i < r.rows.length; i++) {
         console.log("Stored. " + r.rows.item(i).url);
     }
 }
 
+// Deprecated. Used for debugging only.
+// Show search results.
+SearchMarkDB.searchPageCb = function(tx, rs) {
+    for(var i = 0; i < rs.rows.length; i++) {
+        console.log(rs.rows.item(i).url);
+    }
+}
+
+// create the table that stores all the bookmark
+// info, including the associated pages.
 SearchMarkDB.createTable = function() {
     SearchMarkDB.db.transaction(function(tx) {
         tx.executeSql('CREATE TABLE IF NOT EXISTS ' + 
@@ -38,25 +57,43 @@ SearchMarkDB.createTable = function() {
     });
 }
 
+// add a bookmark to the database
 SearchMarkDB.addBookmarkedPage = function(newUrl, newPage) {
     SearchMarkDB.db.transaction(function(tx){
         tx.executeSql('INSERT INTO pages(url, page) VALUES (?,?)', 
                       [newUrl, newPage],
-                      SearchMarkDB.onAdded,
-                      SearchMarkDB.onError);
+                      SearchMarkDB.onAddedCb,
+                      SearchMarkDB.onErrorCb);
     });
 }
 
+// get all bookmark URLs. Callback function can
+// be provided use the results as necessary.
 SearchMarkDB.getStoredBookmarks = 
     function(callback) {
         SearchMarkDB.db.transaction(function(tx) {
             tx.executeSql('SELECT url FROM pages', 
                           [], 
                           callback,
-                          SearchMarkDB.onError);
+                          SearchMarkDB.onErrorCb);
         });
     }
 
+// Deprecated. Although simple to implement, this does
+// not tell us where in a page a match for the keywords was
+// found. We only know which pages matched.
+//
+// To show context in the search results, we need the
+// start index of the match, and for that, the keyword
+// search will have to be repeated on all returned
+// pages. This coupled with the fact this function
+// uses a lot of memory (all results returned at once
+// with entire pages) makes the following function not
+// very viable.
+//
+// A better function will retrieve a page at a time,
+// search once per page, and then release that memory
+// before moving on.
 SearchMarkDB.searchBookmarkedPages = 
     function(keywords, callback) {
         SearchMarkDB.db.transaction(function(tx) {
@@ -66,25 +103,30 @@ SearchMarkDB.searchBookmarkedPages =
                           + "url LIKE " + searchTxt,
                           [],
                           callback, 
-                          SearchMarkDB.onError);
+                          SearchMarkDB.onErrorCb);
         });
     }
 
+// clear all stored information.
 SearchMarkDB.clear = function() {
     SearchMarkDB.db.transaction(function(tx) {
         tx.executeSql('DELETE FROM pages', [],
-                      SearchMarkDB.onClear,
-                      SearchMarkDB.onError);
+                      SearchMarkDB.onClearCb,
+                      SearchMarkDB.onErrorCb);
     });
 }
 
+// open the database each time extension loads.
 SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
-// SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarks);
+// SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
 // SearchMarkDB.clear();
 // localStorage['initialized'] = "no";
 
+// initialize once only. Populate the database
+// by retrieving and storing bookmarked pages, and
+// URLs.
 if(!localStorage['initialized'] ||
    localStorage['initialized'] != "yes") {
     SearchMarkDB.createTable();
@@ -100,14 +142,50 @@ if(!localStorage['initialized'] ||
 
 chrome.extension.onRequest.addListener(
     function(request, sender, callback) {
-        if(request.method == 'search') {
+        // Deprecated. Using only for debugging
+        // see note on DB.searchBookmarkedPages
+        if(request.method == 'debugSearch') {
             SearchMarkDB.searchBookmarkedPages(
                 request.keywords,
-                searchPageCb);
+                SearchMarkDB.searchPageCb);
             
+            callback('');
+        } else if(request.method == 'start') {
+            // Option 1:
+            // open a new tab with a URL pointing 
+            // to the extension's HTML search page. 
+            // This URL should also cause a content 
+            // script to run, which takes input
+            // and sends it back. Background finally 
+            // searches for the input keywords, 
+            // and returns results to content script.
+
+            // Option 2:
+            // run content script on some random URL,
+            // not local extension file, in case above
+            // does not work.
+
+            // Option 3:
+            // Do all of the above content script stuff 
+            // in the popup. Easier but clumsy UI.
+            
+            callback('');
+        } else if(request.method == 'search') {
+            searchBookmarkedPages(request.keywords)
+            callback('');
+        } else {
             callback('');
         }
     });
+
+// 'rs' is a list of all stored bookmark URLs
+function startSearchCb(tx, rs) {
+    ;
+}
+
+function searchBookmarkedPages(keywords) {
+    SearchMarkDB.getStoredBookmarks(startSearchCb);
+}
 
 // function searchBookmarkedPages(bookmarks, keywords, results) {
 //     bookmarks.forEach(function(bookmark) {
@@ -127,12 +205,6 @@ chrome.extension.onRequest.addListener(
 //             searchBookmarkedPages(bookmark.children, keywords, results);
 //     });
 // }
-
-function searchPageCb(tx, rs) {
-    for(var i = 0; i < rs.rows.length; i++) {
-        console.log(rs.rows.item(i).url);
-    }
-}
 
 function getAndStoreBookmarkContents(bookmarks) {
     bookmarks.forEach(function(bookmark) {
