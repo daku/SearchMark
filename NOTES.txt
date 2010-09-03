@@ -1,0 +1,14 @@
+Memory Usage
+==
+
+4,236 K Basic code: add listeners, setup browser action. Nothing
+executed. 
+
+4,572 K Open db only 
+
+5,404 K Query empty db for results
+
+52,144 K After adding about 360 bookmarks to db
+
+6,416 K After browser restart, and displaying stored bookmarks
+

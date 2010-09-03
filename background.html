@@ -2,8 +2,8 @@
 <head>
 <script language="Javascript">
 
-localStorage.clear();
 var SearchMarkDB = {};
+var gAddedUrls = [];
 
 SearchMarkDB.db = null;
 SearchMarkDB.open = function() {
@@ -14,13 +14,20 @@ SearchMarkDB.open = function() {
 }
 
 SearchMarkDB.onError = function(tx, e) {
-    console.log('Error: ' + e.message + 'Transaction:'
-               + tx.toString());
+    console.log(e.message);
 }
 
-SearchMarkDB.onSuccess = function(tx, r) {
+SearchMarkDB.onAdded = function(tx, r) {
+    console.log("Added. " + gAddedUrls.pop());
+}
+
+SearchMarkDB.onClear = function(tx, r) {
+    console.log("Cleared SearchMark database.");
+}
+
+SearchMarkDB.showAllBookmarks = function(tx, r) {
     for(var i = 0; i < r.rows.length; i++) {
-        console.log("Added. " + r.rows.item(i).url);
+        console.log("Stored. " + r.rows.item(i).url);
     }
 }
 
@@ -35,32 +42,61 @@ SearchMarkDB.addBookmarkedPage = function(newUrl, newPage) {
     SearchMarkDB.db.transaction(function(tx){
         tx.executeSql('INSERT INTO pages(url, page) VALUES (?,?)', 
                       [newUrl, newPage],
-                      SearchMarkDB.onSuccess,
+                      SearchMarkDB.onAdded,
                       SearchMarkDB.onError);
     });
 }
 
+SearchMarkDB.getStoredBookmarks = 
+    function(callback) {
+        SearchMarkDB.db.transaction(function(tx) {
+            tx.executeSql('SELECT url FROM pages', 
+                          [], 
+                          callback,
+                          SearchMarkDB.onError);
+        });
+    }
+
 SearchMarkDB.searchBookmarkedPages = 
     function(keywords, callback) {
         SearchMarkDB.db.transaction(function(tx) {
-            tx.executeSql('SELECT * FROM pages WHERE page LIKE %?%', 
-                          [keywords], 
+            var searchTxt = "'%" + keywords + "%'";
+            tx.executeSql("SELECT url FROM pages WHERE "
+                          + "page LIKE " + searchTxt + " OR " 
+                          + "url LIKE " + searchTxt,
+                          [],
                           callback, 
                           SearchMarkDB.onError);
         });
     }
 
-SearchMarkDB.clear = function(id) {
-    html5rocks.webdb.db.transaction(function(tx) {
-    tx.executeSql('DELETE FROM todo WHERE ID=?', [id],
-        loadTodoItems, html5rocks.webdb.onError);
-  });
+SearchMarkDB.clear = function() {
+    SearchMarkDB.db.transaction(function(tx) {
+        tx.executeSql('DELETE FROM pages', [],
+                      SearchMarkDB.onClear,
+                      SearchMarkDB.onError);
+    });
 }
 
 SearchMarkDB.open();
-console.log("SearchMark database opened");
-SearchMarkDB.createTable();
-console.log("Created SearchMark database table 'pages'");
+console.debug("Opened SearchMark database.");
+
+// SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarks);
+// SearchMarkDB.clear();
+// localStorage['initialized'] = "no";
+
+if(!localStorage['initialized'] ||
+   localStorage['initialized'] != "yes") {
+    SearchMarkDB.createTable();
+
+    chrome.bookmarks.getTree(function(bookmarks) {
+        getAndStoreBookmarkContents(bookmarks);
+    });
+
+    localStorage['initialized'] = "yes";
+    
+    console.debug("Saving Bookmarked pages to SearchMark database.");
+}
 
 chrome.extension.onRequest.addListener(
     function(request, sender, callback) {
@@ -72,10 +108,6 @@ chrome.extension.onRequest.addListener(
             callback('');
         }
     });
-
-chrome.bookmarks.getTree(function(bookmarks) {
-    getAndStoreBookmarkContents(bookmarks);
-});
 
 // function searchBookmarkedPages(bookmarks, keywords, results) {
 //     bookmarks.forEach(function(bookmark) {
@@ -107,8 +139,6 @@ function getAndStoreBookmarkContents(bookmarks) {
         if(bookmark.url && bookmark.url.match("^https?://*")) 
         { // url exists and is well formed
             try {
-                console.debug("Indexing " + bookmark.url); 
-
                 var xhr = new XMLHttpRequest();
                 xhr.open("GET", bookmark.url, true);
                 xhr.onreadystatechange = function() {
@@ -117,6 +147,7 @@ function getAndStoreBookmarkContents(bookmarks) {
                             SearchMarkDB.addBookmarkedPage(
                                 bookmark.url, 
                                 xhr.responseText);
+                            gAddedUrls.push(bookmark.url);
                         }
                     } catch(e) {
                         console.log(e.message);
@@ -133,14 +164,13 @@ function getAndStoreBookmarkContents(bookmarks) {
                     "Error retrieving page.");
             }
         } else {
-            console.log("Skipping. " + bookmark.url);
+            console.debug("Skipping. " + bookmark.url);
         }
 
         if (bookmark.children)
             getAndStoreBookmarkContents(bookmark.children);
     });
 }
-
 </script>
 </head>
 </html>

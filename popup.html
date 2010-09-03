@@ -9,7 +9,7 @@ body {
 <script language="Javascript">
 
 chrome.extension.sendRequest(
-    {method: 'search', keywords: 'onelook'}, 
+    {method: 'search', keywords: 'news'}, 
     function(searchResults) {
         searchResults.forEach(function (result) {
             p = document.createElement("p");
