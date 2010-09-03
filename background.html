@@ -2,44 +2,104 @@
 <head>
 <script language="Javascript">
 
+localStorage.clear();
+var SearchMarkDB = {};
+
+SearchMarkDB.db = null;
+SearchMarkDB.open = function() {
+    var dbSize = 200 * 1024 * 1024; // 200 MB
+    SearchMarkDB.db = openDatabase('SearchMarkDB', 
+                                   '1.0', 'Bookmark Page Storage', 
+                                   dbSize);
+}
+
+SearchMarkDB.onError = function(tx, e) {
+    console.log('Error: ' + e.message + 'Transaction:'
+               + tx.toString());
+}
+
+SearchMarkDB.onSuccess = function(tx, r) {
+    for(var i = 0; i < r.rows.length; i++) {
+        console.log("Added. " + r.rows.item(i).url);
+    }
+}
+
+SearchMarkDB.createTable = function() {
+    SearchMarkDB.db.transaction(function(tx) {
+        tx.executeSql('CREATE TABLE IF NOT EXISTS ' + 
+                      'pages(url TEXT PRIMARY KEY, page TEXT)', []);
+    });
+}
+
+SearchMarkDB.addBookmarkedPage = function(newUrl, newPage) {
+    SearchMarkDB.db.transaction(function(tx){
+        tx.executeSql('INSERT INTO pages(url, page) VALUES (?,?)', 
+                      [newUrl, newPage],
+                      SearchMarkDB.onSuccess,
+                      SearchMarkDB.onError);
+    });
+}
+
+SearchMarkDB.searchBookmarkedPages = 
+    function(keywords, callback) {
+        SearchMarkDB.db.transaction(function(tx) {
+            tx.executeSql('SELECT * FROM pages WHERE page LIKE %?%', 
+                          [keywords], 
+                          callback, 
+                          SearchMarkDB.onError);
+        });
+    }
+
+SearchMarkDB.clear = function(id) {
+    html5rocks.webdb.db.transaction(function(tx) {
+    tx.executeSql('DELETE FROM todo WHERE ID=?', [id],
+        loadTodoItems, html5rocks.webdb.onError);
+  });
+}
+
+SearchMarkDB.open();
+console.log("SearchMark database opened");
+SearchMarkDB.createTable();
+console.log("Created SearchMark database table 'pages'");
+
 chrome.extension.onRequest.addListener(
     function(request, sender, callback) {
         if(request.method == 'search') {
-            chrome.bookmarks.getTree(function(bookmarks) {
-                var results = [];
-
-                searchBookmarkedPages(bookmarks, 
-                                      request.keywords, 
-                                      results);
-
-                callback(results);
-            });
+            SearchMarkDB.searchBookmarkedPages(
+                request.keywords,
+                searchPageCb);
+            
+            callback('');
         }
     });
 
 chrome.bookmarks.getTree(function(bookmarks) {
-    localStorage.clear();
-    console.log(localStorage.length);
     getAndStoreBookmarkContents(bookmarks);
 });
 
-function searchBookmarkedPages(bookmarks, keywords, results) {
-    bookmarks.forEach(function(bookmark) {
-        if(bookmark.url && bookmark.url.match("^https?://*")) 
-        { // url exists and is well formed
-            if(bookmark.url.match(keywords)) {
-                results.push(bookmark.url);
-                console.log(bookmark.url);
-                console.log(localStorage[bookmark.url]);
-            } else if(localStorage[bookmark.url].match(keywords)) {
-                results.push(bookmark.url);
-                console.log(bookmark.url);
-            }
-        }
+// function searchBookmarkedPages(bookmarks, keywords, results) {
+//     bookmarks.forEach(function(bookmark) {
+//         if(bookmark.url && bookmark.url.match("^https?://*")) 
+//         { // url exists and is well formed
+//             if(bookmark.url.match(keywords)) {
+//                 results.push(bookmark.url);
+//                 console.log(bookmark.url);
+//                 console.log(localStorage[bookmark.url]);
+//             } else if(localStorage[bookmark.url].match(keywords)) {
+//                 results.push(bookmark.url);
+//                 console.log(bookmark.url);
+//             }
+//         }
         
-        if (bookmark.children)
-            searchBookmarkedPages(bookmark.children, keywords, results);
-    });
+//         if (bookmark.children)
+//             searchBookmarkedPages(bookmark.children, keywords, results);
+//     });
+// }
+
+function searchPageCb(tx, rs) {
+    for(var i = 0; i < rs.rows.length; i++) {
+        console.log(rs.rows.item(i).url);
+    }
 }
 
 function getAndStoreBookmarkContents(bookmarks) {
@@ -52,18 +112,26 @@ function getAndStoreBookmarkContents(bookmarks) {
                 var xhr = new XMLHttpRequest();
                 xhr.open("GET", bookmark.url, true);
                 xhr.onreadystatechange = function() {
-                    if (xhr.readyState == 4) {
-                        localStorage[bookmark.url] =
-                            xhr.responseText;
-                        console.debug(localStorage.length);
+                    try {
+                        if (xhr.readyState == 4) {
+                            SearchMarkDB.addBookmarkedPage(
+                                bookmark.url, 
+                                xhr.responseText);
+                        }
+                    } catch(e) {
+                        console.log(e.message);
+                        SearchMarkDB.addBookmarkedPage(
+                            bookmark.url, 
+                            "Error retrieving page.");
                     }
                 }
                 xhr.send();
             } catch(e) {
-                console.log("NET Exception. " + bookmark.url);
-                localStorage[bookmark.url] = "";
+                console.log(e.message + bookmark.url);
+                SearchMarkDB.addBookmarkedPage(
+                    bookmark.url, 
+                    "Error retrieving page.");
             }
-
         } else {
             console.log("Skipping. " + bookmark.url);
         }
