@@ -2,6 +2,8 @@
 <head>
 <script language="Javascript">
 
+// =============== GLOBALS ==============
+
 // Bookmarked page database
 var SearchMarkDB = {};
 
@@ -9,6 +11,35 @@ var SearchMarkDB = {};
 // Only used during first initialization after that
 // its empty.
 var gAddedUrls = [];
+
+// During each search, the keywords are placed here.
+var gSearchRegex = "";
+var gSearchKeywords = "";
+
+var contextLen = 50;
+
+// Communicate with extension UI
+var gPort;
+
+// Note to self. Why I need the above global variable:
+// In the current state of the database API, if I search
+// it, then the results don't contain any info about
+// what was searched. This is due to the async callbacks
+// that return the result. If callbacks were more 
+// thoughtfully designed, they would allow one to pass 
+// some private information to it, that is sent back when 
+// the callback is called. The whole reason behind this 
+// extra argument is that callbacks cause a state change: 
+// from the function you are in, to the callback itself.
+// But, I don't want to loose the previous state, maybe
+// I had arguments to the function that called the function
+// that initiated a callback that I need to use to process 
+// the results from the callback. But now, I am
+// forced be in the callback where I don't have that info
+// anymore. The key idea: when designing a callback allow
+// some state to be registered with it.
+
+// ======================== DATABASE API ==================
 
 // Open the database
 SearchMarkDB.db = null;
@@ -32,6 +63,14 @@ SearchMarkDB.onClearCb = function(tx, r) {
     console.log("Cleared SearchMark database.");
 }
 
+SearchMarkDB.onDeleteCb = function(tx, r) {
+    console.log("Deleted SearchMark database table 'pages'.");
+}
+
+SearchMarkDB.onCreateTableCb = function(tx, r) {
+    console.log("Created SearchMark database table 'pages'.");
+}
+
 // special callback to print all the bookmark
 // URLs once they are retrieved from the database.
 SearchMarkDB.showAllBookmarksCb = function(tx, r) {
@@ -53,16 +92,30 @@ SearchMarkDB.searchPageCb = function(tx, rs) {
 SearchMarkDB.createTable = function() {
     SearchMarkDB.db.transaction(function(tx) {
         tx.executeSql('CREATE TABLE IF NOT EXISTS ' + 
-                      'pages(url TEXT PRIMARY KEY, page TEXT)', []);
+                      'pages(id INTEGER PRIMARY KEY,' +
+                      'url TEXT, title TEXT, page TEXT)', [],
+                     SearchMarkDB.onCreateTableCb,
+                     SearchMarkDB.onErrorCb);
     });
 }
 
 // add a bookmark to the database
-SearchMarkDB.addBookmarkedPage = function(newUrl, newPage) {
-    SearchMarkDB.db.transaction(function(tx){
-        tx.executeSql('INSERT INTO pages(url, page) VALUES (?,?)', 
-                      [newUrl, newPage],
-                      SearchMarkDB.onAddedCb,
+SearchMarkDB.addBookmarkedPage = 
+    function(newId, newUrl, newTitle, newPage) {
+        SearchMarkDB.db.transaction(function(tx){
+            tx.executeSql('INSERT INTO pages(id, url, title, page) ' 
+                          + 'VALUES (?,?,?,?)', 
+                          [newId, newUrl, newTitle, newPage],
+                          SearchMarkDB.onAddedCb,
+                          SearchMarkDB.onErrorCb);
+        });
+    }
+
+SearchMarkDB.getPage = function(id, callback) {
+    SearchMarkDB.db.transaction(function(tx) {
+        tx.executeSql('SELECT * FROM pages WHERE id = ' + id,
+                      [],
+                      callback,
                       SearchMarkDB.onErrorCb);
     });
 }
@@ -72,7 +125,7 @@ SearchMarkDB.addBookmarkedPage = function(newUrl, newPage) {
 SearchMarkDB.getStoredBookmarks = 
     function(callback) {
         SearchMarkDB.db.transaction(function(tx) {
-            tx.executeSql('SELECT url FROM pages', 
+            tx.executeSql('SELECT id,url FROM pages', 
                           [], 
                           callback,
                           SearchMarkDB.onErrorCb);
@@ -116,17 +169,30 @@ SearchMarkDB.clear = function() {
     });
 }
 
+SearchMarkDB.purge = function() {
+    SearchMarkDB.db.transaction(function(tx) {
+        tx.executeSql('DROP TABLE pages', 
+                      [],
+                      SearchMarkDB.onDeleteCb,
+                      SearchMarkDB.onErrorCb);
+    });
+}
+
+// ================== INIT ===============
+
 // open the database each time extension loads.
 SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
 // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
 // SearchMarkDB.clear();
+// SearchMarkDB.purge();
 // localStorage['initialized'] = "no";
 
 // initialize once only. Populate the database
 // by retrieving and storing bookmarked pages, and
-// URLs.
+// URLs. If initialized but want to reinitialize,
+// just set localStorage['initialized'] to "no".
 if(!localStorage['initialized'] ||
    localStorage['initialized'] != "yes") {
     SearchMarkDB.createTable();
@@ -139,6 +205,8 @@ if(!localStorage['initialized'] ||
     
     console.debug("Saving Bookmarked pages to SearchMark database.");
 }
+
+// ========================== CORE ===============
 
 chrome.extension.onRequest.addListener(
     function(request, sender, callback) {
@@ -171,40 +239,72 @@ chrome.extension.onRequest.addListener(
             
             callback('');
         } else if(request.method == 'search') {
-            searchBookmarkedPages(request.keywords)
+            gSearchKeywords = request.keywords;
+            gSearchRegex = new RegExp('(' + request.keywords + ')', 'i');
+            gPort = chrome.extension.connect({name: "uiToBackend"});
+            searchBookmarkedPages();
             callback('');
         } else {
             callback('');
         }
     });
 
-// 'rs' is a list of all stored bookmark URLs
-function startSearchCb(tx, rs) {
-    ;
+// ================= CORE API ===================
+
+function searchPageCb(tx, r) {
+    for(var i = 0; i < r.rows.length; i++) {
+        var matchIdx;
+        if((matchIdx = r.rows.item(i).page.search(gSearchRegex)) != -1) {
+            var result = '';
+
+            result = r.rows.item(i).page.substring(
+                matchIdx - contextLen, matchIdx + contextLen);
+
+            // remove HTML tags
+            result = result.replace(/(<\S|\/>)/gm, "");
+
+            // reduce spaces
+            result = result.replace(/\s+/gm, " ");
+
+            result = result.replace(gSearchRegex, "<b>$1</b>");
+
+            result = "<a href=" + r.rows.item(i).url + ">" +
+                r.rows.item(i).url + "</a><br>" + result;
+            
+            gPort.postMessage(result);
+        }
+    }
 }
 
-function searchBookmarkedPages(keywords) {
-    SearchMarkDB.getStoredBookmarks(startSearchCb);
+// 'r' is a list of all stored bookmark URLs
+function searchBookmarkedPagesCb(tx, r) {
+    for(var i = 0; i < r.rows.length; i++) 
+    { // handle URL and Title here.
+        if(r.rows.item(i).url.search(gSearchRegex) != -1) {
+            var line;
+
+            line = r.rows.item(i).url.replace(gSearchRegex,
+                                              "<b>$1</b>");
+
+            line = "<a href=" + r.rows.item(i).url + ">" +
+                line + "</a>";
+            
+            gPort.postMessage(line);
+        } else { // handle page here
+            SearchMarkDB.getPage(r.rows.item(i).id,
+                                 searchPageCb);
+        }
+    }
+
+    // cleanup. WRONG PLACE
+//    gPort.disconnect();
+//    gSearchRegex = '';
+//    gSearchKeywords = '';
 }
 
-// function searchBookmarkedPages(bookmarks, keywords, results) {
-//     bookmarks.forEach(function(bookmark) {
-//         if(bookmark.url && bookmark.url.match("^https?://*")) 
-//         { // url exists and is well formed
-//             if(bookmark.url.match(keywords)) {
-//                 results.push(bookmark.url);
-//                 console.log(bookmark.url);
-//                 console.log(localStorage[bookmark.url]);
-//             } else if(localStorage[bookmark.url].match(keywords)) {
-//                 results.push(bookmark.url);
-//                 console.log(bookmark.url);
-//             }
-//         }
-        
-//         if (bookmark.children)
-//             searchBookmarkedPages(bookmark.children, keywords, results);
-//     });
-// }
+function searchBookmarkedPages() {
+    SearchMarkDB.getStoredBookmarks(searchBookmarkedPagesCb);
+}
 
 function getAndStoreBookmarkContents(bookmarks) {
     bookmarks.forEach(function(bookmark) {
@@ -217,14 +317,18 @@ function getAndStoreBookmarkContents(bookmarks) {
                     try {
                         if (xhr.readyState == 4) {
                             SearchMarkDB.addBookmarkedPage(
-                                bookmark.url, 
+                                bookmark.id,
+                                bookmark.url,
+                                bookmark.title,
                                 xhr.responseText);
                             gAddedUrls.push(bookmark.url);
                         }
                     } catch(e) {
                         console.log(e.message);
                         SearchMarkDB.addBookmarkedPage(
-                            bookmark.url, 
+                            bookmark.id,
+                            bookmark.url,
+                            bookmark.title,
                             "Error retrieving page.");
                     }
                 }
@@ -232,7 +336,9 @@ function getAndStoreBookmarkContents(bookmarks) {
             } catch(e) {
                 console.log(e.message + bookmark.url);
                 SearchMarkDB.addBookmarkedPage(
-                    bookmark.url, 
+                    bookmark.id,
+                    bookmark.url,
+                    bookmark.title,
                     "Error retrieving page.");
             }
         } else {

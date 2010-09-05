@@ -8,16 +8,18 @@ body {
 </style>
 <script language="Javascript">
 
+chrome.extension.onConnect.addListener(function(port) {
+    console.assert(port.name == "uiToBackend");
+    port.onMessage.addListener(function(msg) {
+        p = document.createElement("p");
+        p.innerHTML = msg;
+        document.body.appendChild(p);
+    });
+});
+
 chrome.extension.sendRequest(
     {method: 'search', keywords: 'news'}, 
-    function(searchResults) {
-        searchResults.forEach(function (result) {
-            p = document.createElement("p");
-            text = document.createTextNode(result);
-            p.appendChild(text);
-            document.body.appendChild(p);
-        });
-    });
+    function() {});
 </script>
 </head>
 <body>
