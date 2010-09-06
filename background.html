@@ -15,8 +15,7 @@ var gAddedUrls = [];
 // During each search, the keywords are placed here.
 var gSearchRegex = "";
 var gSearchKeywords = "";
-
-var contextLen = 50;
+var gContextLen = 200;
 
 // Communicate with extension UI
 var gPort;
@@ -210,32 +209,12 @@ if(!localStorage['initialized'] ||
 
 chrome.extension.onRequest.addListener(
     function(request, sender, callback) {
-        // Deprecated. Using only for debugging
-        // see note on DB.searchBookmarkedPages
+        // Deprecated. Using only for debugging.
+        // See note on DB.searchBookmarkedPages
         if(request.method == 'debugSearch') {
             SearchMarkDB.searchBookmarkedPages(
                 request.keywords,
                 SearchMarkDB.searchPageCb);
-            
-            callback('');
-        } else if(request.method == 'start') {
-            // Option 1:
-            // open a new tab with a URL pointing 
-            // to the extension's HTML search page. 
-            // This URL should also cause a content 
-            // script to run, which takes input
-            // and sends it back. Background finally 
-            // searches for the input keywords, 
-            // and returns results to content script.
-
-            // Option 2:
-            // run content script on some random URL,
-            // not local extension file, in case above
-            // does not work.
-
-            // Option 3:
-            // Do all of the above content script stuff 
-            // in the popup. Easier but clumsy UI.
             
             callback('');
         } else if(request.method == 'search') {
@@ -253,23 +232,33 @@ chrome.extension.onRequest.addListener(
 
 function searchPageCb(tx, r) {
     for(var i = 0; i < r.rows.length; i++) {
+        var result = '';
+
+        // reduce spaces
+        result = r.rows.item(i).page.replace(/\s+/gm, " ");
+        
+        // replace all HTML tags except 'a' and 'img'
+        // Notice the ? after *. This indicates shortest
+        // match.
+        result = result.replace(/<\s*?\/?\s*?[^(a|img)](.|\s)*?>/igm, " ");
+        
+        // remove 'a' and 'img' tags but leave in URIs
+        result = result.replace(
+                    /<\s*(a|img).*?(href\s*=\s*["'].*?["']|src\s*=\s*["'].*?["']|alt\s*=\s*["'].*?["'])[.\s]*?>/igm, " $2 ");
+
         var matchIdx;
-        if((matchIdx = r.rows.item(i).page.search(gSearchRegex)) != -1) {
-            var result = '';
 
-            result = r.rows.item(i).page.substring(
-                matchIdx - contextLen, matchIdx + contextLen);
+        if((matchIdx = result.search(gSearchRegex)) != -1) {
 
-            // remove HTML tags
-            result = result.replace(/(<\S|\/>)/gm, "");
 
-            // reduce spaces
-            result = result.replace(/\s+/gm, " ");
+            result = result.substring(matchIdx - gContextLen, 
+                                      matchIdx + gContextLen);
 
+            // bold matched text
             result = result.replace(gSearchRegex, "<b>$1</b>");
 
             result = "<a href=" + r.rows.item(i).url + ">" +
-                r.rows.item(i).url + "</a><br>" + result;
+                r.rows.item(i).title + "</a><br>" + result;
             
             gPort.postMessage(result);
         }
