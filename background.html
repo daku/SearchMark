@@ -15,7 +15,7 @@ var gAddedUrls = [];
 // During each search, the keywords are placed here.
 var gSearchRegex = "";
 var gSearchKeywords = "";
-var gContextLen = 200;
+var gContextLen = 100;
 
 // Communicate with extension UI
 var gPort;
@@ -90,21 +90,25 @@ SearchMarkDB.searchPageCb = function(tx, rs) {
 // info, including the associated pages.
 SearchMarkDB.createTable = function() {
     SearchMarkDB.db.transaction(function(tx) {
-        tx.executeSql('CREATE TABLE IF NOT EXISTS ' + 
-                      'pages(id INTEGER PRIMARY KEY,' +
-                      'url TEXT, title TEXT, page TEXT)', [],
-                     SearchMarkDB.onCreateTableCb,
-                     SearchMarkDB.onErrorCb);
+        tx.executeSql('CREATE TABLE IF NOT EXISTS ' 
+                      + 'pages(id INTEGER PRIMARY KEY, ' 
+                      + 'url TEXT, title TEXT, page TEXT, ' 
+                      + 'htmlpage TEXT)', 
+                      [],
+                      SearchMarkDB.onCreateTableCb,
+                      SearchMarkDB.onErrorCb);
     });
 }
 
 // add a bookmark to the database
 SearchMarkDB.addBookmarkedPage = 
-    function(newId, newUrl, newTitle, newPage) {
+    function(newId, newUrl, newTitle, newPlainPage, newHtmlPage) {
         SearchMarkDB.db.transaction(function(tx){
-            tx.executeSql('INSERT INTO pages(id, url, title, page) ' 
-                          + 'VALUES (?,?,?,?)', 
-                          [newId, newUrl, newTitle, newPage],
+            tx.executeSql('INSERT INTO pages(id, url, title, '
+                          + 'page, htmlpage) ' 
+                          + 'VALUES (?,?,?,?,?)', 
+                          [newId, newUrl, newTitle, 
+                           newPlainPage, newHtmlPage],
                           SearchMarkDB.onAddedCb,
                           SearchMarkDB.onErrorCb);
         });
@@ -184,9 +188,9 @@ SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
 // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
-// SearchMarkDB.clear();
 // SearchMarkDB.purge();
-// localStorage['initialized'] = "no";
+// SearchMarkDB.clear();
+localStorage['initialized'] = "no";
 
 // initialize once only. Populate the database
 // by retrieving and storing bookmarked pages, and
@@ -232,27 +236,17 @@ chrome.extension.onRequest.addListener(
 
 function searchPageCb(tx, r) {
     for(var i = 0; i < r.rows.length; i++) {
-        var result = '';
-
-        // reduce spaces
-        result = r.rows.item(i).page.replace(/\s+/gm, " ");
-        
-        // replace all HTML tags except 'a' and 'img'
-        // Notice the ? after *. This indicates shortest
-        // match.
-        result = result.replace(/<\s*?\/?\s*?[^(a|img)](.|\s)*?>/igm, " ");
-        
-        // remove 'a' and 'img' tags but leave in URIs
-        result = result.replace(
-                    /<\s*(a|img).*?(href\s*=\s*["'].*?["']|src\s*=\s*["'].*?["']|alt\s*=\s*["'].*?["'])[.\s]*?>/igm, " $2 ");
-
         var matchIdx;
 
-        if((matchIdx = result.search(gSearchRegex)) != -1) {
+        if((matchIdx = 
+            r.rows.item(i).page.search(gSearchRegex)) != -1) {
+            var result = '';
 
+            if(r.rows.item(i).title.match("Plum"))
+                console.log(r.rows.item(i).page);
 
-            result = result.substring(matchIdx - gContextLen, 
-                                      matchIdx + gContextLen);
+            result = r.rows.item(i).page.substring(
+                matchIdx - gContextLen, matchIdx + gContextLen);
 
             // bold matched text
             result = result.replace(gSearchRegex, "<b>$1</b>");
@@ -305,11 +299,28 @@ function getAndStoreBookmarkContents(bookmarks) {
                 xhr.onreadystatechange = function() {
                     try {
                         if (xhr.readyState == 4) {
+
+                            // reduce spaces, remove new lines
+                            var pageNoHtml = 
+                                xhr.responseText.replace(/\s+/gm, " ");
+
+                            // remove meta, script, style, and head 
+                            // tag *and* content.
+                            pageNoHtml =
+                                pageNoHtml.replace(/<\s*(head|meta|script|style)\s+.*?>.*?<\s*\/\s*(head|meta|script|style)\s*>/gi, "");
+
+                            // Now remove other tags
+                            pageNoHtml =
+                                pageNoHtml.replace(/<.*?\/?>/gi, "");
+
+                            // add page to databse
                             SearchMarkDB.addBookmarkedPage(
                                 bookmark.id,
                                 bookmark.url,
                                 bookmark.title,
+                                pageNoHtml,
                                 xhr.responseText);
+                            
                             gAddedUrls.push(bookmark.url);
                         }
                     } catch(e) {
@@ -318,7 +329,8 @@ function getAndStoreBookmarkContents(bookmarks) {
                             bookmark.id,
                             bookmark.url,
                             bookmark.title,
-                            "Error retrieving page.");
+                            "",
+                            "");
                     }
                 }
                 xhr.send();
@@ -328,7 +340,8 @@ function getAndStoreBookmarkContents(bookmarks) {
                     bookmark.id,
                     bookmark.url,
                     bookmark.title,
-                    "Error retrieving page.");
+                    "",
+                    "");
             }
         } else {
             console.debug("Skipping. " + bookmark.url);
