@@ -15,7 +15,7 @@ var gAddedUrls = [];
 // During each search, the keywords are placed here.
 var gSearchRegex = "";
 var gSearchKeywords = "";
-var gContextLen = 100;
+var gContextLen = 200;
 
 // Communicate with extension UI
 var gPort;
@@ -190,7 +190,7 @@ console.debug("Opened SearchMark database.");
 // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
 // SearchMarkDB.purge();
 // SearchMarkDB.clear();
-localStorage['initialized'] = "no";
+// localStorage['initialized'] = "no";
 
 // initialize once only. Populate the database
 // by retrieving and storing bookmarked pages, and
@@ -223,9 +223,14 @@ chrome.extension.onRequest.addListener(
             callback('');
         } else if(request.method == 'search') {
             gSearchKeywords = request.keywords;
-            gSearchRegex = new RegExp('(' + request.keywords + ')', 'i');
+
+            gSearchRegex = new RegExp('(' + request.keywords + ')',
+            'i');
+
             gPort = chrome.extension.connect({name: "uiToBackend"});
+
             searchBookmarkedPages();
+
             callback('');
         } else {
             callback('');
@@ -242,11 +247,35 @@ function searchPageCb(tx, r) {
             r.rows.item(i).page.search(gSearchRegex)) != -1) {
             var result = '';
 
-            if(r.rows.item(i).title.match("Plum"))
-                console.log(r.rows.item(i).page);
-
             result = r.rows.item(i).page.substring(
                 matchIdx - gContextLen, matchIdx + gContextLen);
+
+            if(r.rows.item(i).title.match("DRUDGE")) {
+                console.log(result);
+                console.log("Data.");
+                console.log(result.length/3);
+                console.log(result[0]);
+                console.log(result[result.length-1]);
+            }
+
+            // Trim incomplete word from end.
+            // We only look for whitespace until a third of
+            // the result's length.
+            for(var endIdx = result.length-1;
+                endIdx > result.length - result.length/3; --endIdx)
+                if(result[endIdx] == ' ' && endIdx != result.length-1) {
+                    result = result.slice(0, endIdx);
+                    result = result.concat("...");
+                    break;
+                }
+                
+            // now trim from beginning.
+            for(var startIdx = 0; startIdx < result.length/3; ++startIdx)
+                if(result[startIdx] == ' ' && startIdx != 0) {
+                    result = result.slice(startIdx);
+                    result = (new String("...")).concat(result);
+                    break;
+                }
 
             // bold matched text
             result = result.replace(gSearchRegex, "<b>$1</b>");
@@ -285,6 +314,33 @@ function searchBookmarkedPagesCb(tx, r) {
 //    gSearchKeywords = '';
 }
 
+function removeHTMLfromPage(page) {
+    // reduce spaces, remove new lines
+    var pagetxt = page.replace(/\s+/gm, " ");
+
+    // remove 'script' and 'head' tags *and* content
+    pagetxt = pagetxt.replace(
+            /<\s*?head.*?>.*?<\s*?\/\s*?head\s*?>/i, " ");
+    pagetxt = pagetxt.replace(
+            /<\s*?script.*?>.*?<\s*?\/\s*?script\s*?>/gi, " ");
+    pagetxt = pagetxt.replace(
+            /<\s*?style.*?>.*?<\s*?\/\s*?style\s*?>/gi, " ");
+
+    // Now remove other tags
+    pagetxt = pagetxt.replace(/<.*?\/?>/g, " ");
+
+    // Remove symbols
+    pagetxt = pagetxt.replace(/&.*?;/g, " ");
+
+    // Remove comment markers
+    pagetxt = pagetxt.replace(/(<!--|-->)/g, " ");
+
+    // After all the filtering, need to fix up spaces again
+    pagetxt = pagetxt.replace(/\s+/gm, " ");
+
+    return pagetxt;
+}
+
 function searchBookmarkedPages() {
     SearchMarkDB.getStoredBookmarks(searchBookmarkedPagesCb);
 }
@@ -300,18 +356,8 @@ function getAndStoreBookmarkContents(bookmarks) {
                     try {
                         if (xhr.readyState == 4) {
 
-                            // reduce spaces, remove new lines
                             var pageNoHtml = 
-                                xhr.responseText.replace(/\s+/gm, " ");
-
-                            // remove meta, script, style, and head 
-                            // tag *and* content.
-                            pageNoHtml =
-                                pageNoHtml.replace(/<\s*(head|meta|script|style)\s+.*?>.*?<\s*\/\s*(head|meta|script|style)\s*>/gi, "");
-
-                            // Now remove other tags
-                            pageNoHtml =
-                                pageNoHtml.replace(/<.*?\/?>/gi, "");
+                                removeHTMLfromPage(xhr.responseText);
 
                             // add page to databse
                             SearchMarkDB.addBookmarkedPage(
