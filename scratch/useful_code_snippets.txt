@@ -1,0 +1,63 @@
+            var pg = 'hello<p>world</p>line<br>tonight<html a="b">is '
+        + 'the <b>night</b></html>to    search using <a '
+                + 'href="http://www.sm.com/">searchmark</a> and '
+                + 'our <img src="/file/smlogo.png">logo </img> is pretty.';
+            
+            // replace all HTML tags except 'a' and 'img'
+            pg = pg.replace(/<\/?[^(a|img)].*?>/gm, " ");
+            pg =
+            // remove 'a' and 'img' tag, but leave URIs
+            pg.replace(
+                    /<\s*(a|img).*?(href\s*=\s*".*?"|src\s*=\s*".*?"|alt=\s*".*?").*?>/gmi,
+            " $2 ");
+            console.log(pg);
+
+
+=========
+
+
+//                            var showit = 0;
+                            // Uncomment to debug HTML filtering
+                            // function.
+//                             if(bookmark.url.match("sitepoint.com"))
+//                             {
+//                                 showit = 1;
+//                             }
+
+                            pageNoHtml =
+                                removeHTMLFromPage(xhr.responseText, 
+                                                   showit);
+======
+
+Test database:
+
+SearchMarkDB.addBookmarkedPage(325,
+                               "http://www.yahoo.com/", 
+                                "Yahoo",
+                                "yahoopage",
+                                "<html>yahoopage</html>");
+
+====
+
+REgex
+
+    // INTERESTING, but not used for now. 
+    // Remove 'a' and 'img' tags but leave in URIs
+    // page = page.replace(/<\s*(a.+?href\s*=|img.+?(src\s*=|alt\s*=|title\s*=)\s*["'])(.+?)["'][.\s]*?>/igm, " $3 ");
+
+
+
+======
+
+Another test HTML page. Could not use original google scholar
+page because FUCKING FUCKED UP JS does not like <script> tags
+in its string. Do we call this a programming langauge? WTF???
+
+            var testPage = '<html><head>this is head and ' + 
+                'should be gone my script' +
+                '</head><body>another script' +
+                '<br><  p a="b">my para< / p></boDy><html>';
+
+            var pagetxt = removeHTMLfromPage(testPage);
+            console.log(pagetxt);
+            console.log("original:  " + testPage);
