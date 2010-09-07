@@ -10,9 +10,14 @@ body {
 
 chrome.extension.onConnect.addListener(function(port) {
     console.assert(port.name == "uiToBackend");
-    port.onMessage.addListener(function(msg) {
+    port.onMessage.addListener(function(result) {
         p = document.createElement("p");
-        p.innerHTML = msg;
+        p.innerHTML = '<a href="' + result.url + '">'
+            + result.title + '</a><br>' + result.text
+            + '<br>(' + result.url + ')';
+
+        console.log(p.innerHTML);
+
         document.body.appendChild(p);
     });
 });

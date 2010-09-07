@@ -128,7 +128,7 @@ SearchMarkDB.getPage = function(id, callback) {
 SearchMarkDB.getStoredBookmarks = 
     function(callback) {
         SearchMarkDB.db.transaction(function(tx) {
-            tx.executeSql('SELECT id,url FROM pages', 
+            tx.executeSql('SELECT id,url,title FROM pages', 
                           [], 
                           callback,
                           SearchMarkDB.onErrorCb);
@@ -245,44 +245,50 @@ function searchPageCb(tx, r) {
 
         if((matchIdx = 
             r.rows.item(i).page.search(gSearchRegex)) != -1) {
-            var result = '';
+            var context = '';
 
-            result = r.rows.item(i).page.substring(
+            context = r.rows.item(i).page.substring(
                 matchIdx - gContextLen, matchIdx + gContextLen);
-
-            if(r.rows.item(i).title.match("DRUDGE")) {
-                console.log(result);
-                console.log("Data.");
-                console.log(result.length/3);
-                console.log(result[0]);
-                console.log(result[result.length-1]);
-            }
 
             // Trim incomplete word from end.
             // We only look for whitespace until a third of
-            // the result's length.
-            for(var endIdx = result.length-1;
-                endIdx > result.length - result.length/3; --endIdx)
-                if(result[endIdx] == ' ' && endIdx != result.length-1) {
-                    result = result.slice(0, endIdx);
-                    result = result.concat("...");
+            // the context's length.
+            for(var endIdx = context.length-1;
+                endIdx > context.length - context.length/3; 
+                --endIdx) 
+            {
+                if(context[endIdx] == ' ' && endIdx != context.length-1) {
+                    context = context.slice(0, endIdx);
+                    context = context.concat("...");
                     break;
                 }
-                
+            }
+
             // now trim from beginning.
-            for(var startIdx = 0; startIdx < result.length/3; ++startIdx)
-                if(result[startIdx] == ' ' && startIdx != 0) {
-                    result = result.slice(startIdx);
-                    result = (new String("...")).concat(result);
+            for(var startIdx = 0; startIdx < context.length/3;
+                ++startIdx) 
+            {
+                if(context[startIdx] == ' ' && startIdx != 0) {
+                    context = context.slice(startIdx);
+                    context = (new String("...")).concat(context);
                     break;
                 }
+            }
 
             // bold matched text
-            result = result.replace(gSearchRegex, "<b>$1</b>");
+            context = context.replace(gSearchRegex, "<b>$1</b>");
 
-            result = "<a href=" + r.rows.item(i).url + ">" +
-                r.rows.item(i).title + "</a><br>" + result;
-            
+            var result = {};
+
+            result.url = r.rows.item(i).url;
+            if(r.rows.item(i).title == undefined) {
+                result.title = r.rows.item(i).url;
+            } else {
+                result.title = r.rows.item(i).title;
+            }
+            result.text = context;
+            result.matchType = "page";
+
             gPort.postMessage(result);
         }
     }
@@ -291,17 +297,35 @@ function searchPageCb(tx, r) {
 // 'r' is a list of all stored bookmark URLs
 function searchBookmarkedPagesCb(tx, r) {
     for(var i = 0; i < r.rows.length; i++) 
-    { // handle URL and Title here.
-        if(r.rows.item(i).url.search(gSearchRegex) != -1) {
-            var line;
+    {
+        if(r.rows.item(i).title &&
+           r.rows.item(i).title.search(gSearchRegex) != -1) 
+        { // handle Title matches here
+            var result = {};
 
-            line = r.rows.item(i).url.replace(gSearchRegex,
-                                              "<b>$1</b>");
+            result.url = r.rows.item(i).url;
+            result.title = r.rows.item(i).title.replace(
+                gSearchRegex, "<b>$1</b>");
+            result.text = "";
+            result.matchType = "title";
 
-            line = "<a href=" + r.rows.item(i).url + ">" +
-                line + "</a>";
-            
-            gPort.postMessage(line);
+            gPort.postMessage(result);
+        } 
+        else if(r.rows.item(i).url.search(gSearchRegex) != -1) 
+        { // handle URL matches here
+            var result = {};
+
+            result.url = r.rows.item(i).url;
+            if(r.rows.item(i).title == undefined) {
+                result.title = r.rows.item(i).url;
+            } else {
+                result.title = r.rows.item(i).title;
+            }
+            result.text = r.rows.item(i).url.replace(
+                gSearchRegex, "<b>$1</b>");
+            result.matchType = "url";
+
+            gPort.postMessage(result);
         } else { // handle page here
             SearchMarkDB.getPage(r.rows.item(i).id,
                                  searchPageCb);
