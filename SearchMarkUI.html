@@ -1,0 +1,32 @@
+<html>
+<head>
+<title>Search Bookmarked Pages</title>
+<script language="Javascript">
+    function main() {
+        chrome.extension.onConnect.addListener(function(port) {
+            if(port.name != "uiToBackend")
+                return;
+
+            port.onMessage.addListener(function(result) {
+                p = document.createElement("p");
+                p.innerHTML = '<a href="' + result.url + '">'
+                    + result.title + '</a><br>' + result.text
+                    + '<br>(' + result.url + ')';
+                
+                document.body.appendChild(p);
+            });
+        });
+
+        p = document.createElement("p");
+        p.innerHTML = "<b>Display search form here.</b>";
+        document.body.appendChild(p)
+
+        chrome.extension.sendRequest(
+            {method: 'search', keywords: 'news'}, 
+            function() {});
+    }
+</script>
+</head>
+<body onLoad="main()">
+</body>
+</html>

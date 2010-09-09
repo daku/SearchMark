@@ -211,6 +211,13 @@ if(!localStorage['initialized'] ||
 
 // ========================== CORE ===============
 
+chrome.browserAction.onClicked.addListener(
+    function(tab) {
+        chrome.tabs.create(
+            {'url':'SearchMarkUI.html'},
+            function(newTab) {});
+    });
+
 chrome.extension.onRequest.addListener(
     function(request, sender, callback) {
         // Deprecated. Using only for debugging.
@@ -230,6 +237,8 @@ chrome.extension.onRequest.addListener(
             gPort = chrome.extension.connect({name: "uiToBackend"});
 
             searchBookmarkedPages();
+
+            console.log(chrome.extension.getURL("background.html"));
 
             callback('');
         } else {
