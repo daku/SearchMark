@@ -57,6 +57,7 @@ function processSearchResult(result) {
 <body onLoad="init()">
 <!-- All HTML for SearchMark UI needs to be here. -->
 <form name=searchForm>
+Search inside your bookmark:
 <input type="text" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById('searchButton').click()"/>
 
 <input type="button" id="searchButton" value="Search" onclick="startSearch();" />
