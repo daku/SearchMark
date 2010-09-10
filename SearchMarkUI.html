@@ -2,31 +2,64 @@
 <head>
 <title>Search Bookmarked Pages</title>
 <script language="Javascript">
-    function main() {
-        chrome.extension.onConnect.addListener(function(port) {
-            if(port.name != "uiToBackend")
-                return;
 
-            port.onMessage.addListener(function(result) {
-                p = document.createElement("p");
-                p.innerHTML = '<a href="' + result.url + '">'
-                    + result.title + '</a><br>' + result.text
-                    + '<br>(' + result.url + ')';
-                
-                document.body.appendChild(p);
-            });
+// Initialize communication channel between backend and UI.
+// No UI code should be added here. Change only if ABSOLUTELY 
+// necessary.
+function init() {
+    // When background page connects to UI to send back
+    // results, the added listner code will execute and 
+    // register a callback function with the communication 
+    // port. The callback will be called each time a message 
+    // is received on that port. Each message constitutes a 
+    // single result to be displayed. See processSearchResult().
+    chrome.extension.onConnect.addListener(function(port) {
+        if(port.name != "uiToBackend") {
+            console.log("Invalid port name: " + port.name);
+            return;
+        }
+        
+        port.onMessage.addListener(function(result) {
+            processSearchResult(result);
         });
+    });
+}
 
-        p = document.createElement("p");
-        p.innerHTML = "<b>Display search form here.</b>";
-        document.body.appendChild(p)
+// Take keywords from text box and send to
+// backend for searching.
+function startSearch() {
+    chrome.extension.sendRequest(
+        {method: 'search', keywords: document.searchForm.searchBox.value}, 
+        function() {});
+}
 
-        chrome.extension.sendRequest(
-            {method: 'search', keywords: 'news'}, 
-            function() {});
-    }
+// Each search result will be delivered here.
+// result object has fields,
+//   result.url: page URL
+//   result.text: formatted page text, or URL
+//   result.title: page title
+//   result.matchType: 'title', 'url', or 'page'
+//     If the title matched, then result.text will be 
+//     empty. if URL matched, then result.text will be 
+//     a formatted URL (keyword is in bold face), if 
+//     page text matched, then result.text will contain 
+//     textual context.
+function processSearchResult(result) {
+    p = document.createElement("p");
+    p.innerHTML = '<a href="' + result.url + '">'
+        + result.title + '</a><br>' + result.text
+        + '<br>(' + result.url + ')';
+    
+    document.body.appendChild(p);
+}
 </script>
 </head>
-<body onLoad="main()">
+<body onLoad="init()">
+<!-- All HTML for SearchMark UI needs to be here. -->
+<form name=searchForm>
+<input type="text" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById('searchButton').click()"/>
+
+<input type="button" id="searchButton" value="Search" onclick="startSearch();" />
+</form>
 </body>
 </html>
