@@ -80,7 +80,7 @@ SearchMarkDB.showAllBookmarksCb = function(tx, r) {
 
 // Deprecated. Used for debugging only.
 // Show search results.
-SearchMarkDB.searchPageCb = function(tx, rs) {
+SearchMarkDB.debugSearchPageCb = function(tx, rs) {
     for(var i = 0; i < rs.rows.length; i++) {
         console.log(rs.rows.item(i).url);
     }
@@ -150,7 +150,7 @@ SearchMarkDB.getStoredBookmarks =
 // A better function will retrieve a page at a time,
 // search once per page, and then release that memory
 // before moving on.
-SearchMarkDB.searchBookmarkedPages = 
+SearchMarkDB.debugSearch = 
     function(keywords, callback) {
         SearchMarkDB.db.transaction(function(tx) {
             var searchTxt = "'%" + keywords + "%'";
@@ -221,11 +221,11 @@ chrome.browserAction.onClicked.addListener(
 chrome.extension.onRequest.addListener(
     function(request, sender, callback) {
         // Deprecated. Using only for debugging.
-        // See note on DB.searchBookmarkedPages
+        // See note on DB.debugSearch
         if(request.method == 'debugSearch') {
-            SearchMarkDB.searchBookmarkedPages(
+            SearchMarkDB.debugSearch(
                 request.keywords,
-                SearchMarkDB.searchPageCb);
+                SearchMarkDB.debugSearchPageCb);
             
             callback('');
         } else if(request.method == 'search') {
@@ -338,11 +338,6 @@ function searchBookmarkedPagesCb(tx, r) {
                                  searchPageCb);
         }
     }
-
-    // cleanup. WRONG PLACE
-//    gPort.disconnect();
-//    gSearchRegex = '';
-//    gSearchKeywords = '';
 }
 
 function removeHTMLfromPage(page) {
