@@ -10,7 +10,8 @@ var SearchMarkDB = {};
 // Contains bookmarks added to the database
 // Only used during first initialization after that
 // its empty.
-var gAddedUrls = [];
+var gProcessedUrls = [];
+var gRemainingSearch = 0;
 
 // During each search, the keywords are placed here.
 var gSearchRegex = "";
@@ -54,8 +55,16 @@ SearchMarkDB.onErrorCb = function(tx, e) {
     console.log(e.message);
 }
 
-SearchMarkDB.onAddedCb = function(tx, r) {
-    console.log("Added. " + gAddedUrls.pop());
+SearchMarkDB.onAddCb = function(tx, r) {
+    console.log("Added. " + gProcessedUrls.pop());
+}
+
+SearchMarkDB.onRemoveCb = function(tx, r) {
+    console.log("Removed. " + gProcessedUrls.pop());
+}
+
+SearchMarkDB.onUpdateCb = function(tx, r) {
+    console.log("Updated. " + gProcessedUrls.pop());
 }
 
 SearchMarkDB.onClearCb = function(tx, r) {
@@ -100,7 +109,7 @@ SearchMarkDB.createTable = function() {
     });
 }
 
-// add a bookmark to the database
+// add a bookmark and associated page to the database
 SearchMarkDB.addBookmarkedPage = 
     function(newId, newUrl, newTitle, newPlainPage, newHtmlPage) {
         SearchMarkDB.db.transaction(function(tx){
@@ -109,11 +118,37 @@ SearchMarkDB.addBookmarkedPage =
                           + 'VALUES (?,?,?,?,?)', 
                           [newId, newUrl, newTitle, 
                            newPlainPage, newHtmlPage],
-                          SearchMarkDB.onAddedCb,
+                          SearchMarkDB.onAddCb,
                           SearchMarkDB.onErrorCb);
         });
     }
 
+// remove a bookmarked page from the database
+SearchMarkDB.removeBookmarkedPage = 
+    function(theId) {
+        SearchMarkDB.db.transaction(function(tx){
+            tx.executeSql('DELETE FROM pages WHERE id=?'
+                          [theId],
+                          SearchMarkDB.onRemoveCb,
+                          SearchMarkDB.onErrorCb);
+        });
+    } 
+    
+// update an already stored bookmarked page
+SearchMarkDB.updateBookmarkedPage = 
+    function(theId, theUrl, theTitle, thePlainPage, theHtmlPage) {
+        SearchMarkDB.db.transaction(function(tx){
+            tx.executeSql('UPDATE pages SET url=?, '
+                          + 'title=?, page=?, htmlpage=? ' 
+                          + 'WHERE id=?', 
+                          [theUrl, theTitle, thePlainPage,
+                           theHtmlPage, theId],
+                          SearchMarkDB.onUpdateCb,
+                          SearchMarkDB.onErrorCb);
+        });
+    }
+
+// get a page given the bookmark id
 SearchMarkDB.getPage = function(id, callback) {
     SearchMarkDB.db.transaction(function(tx) {
         tx.executeSql('SELECT * FROM pages WHERE id = ' + id,
@@ -137,19 +172,18 @@ SearchMarkDB.getStoredBookmarks =
 
 // Deprecated. Although simple to implement, this does
 // not tell us where in a page a match for the keywords was
-// found. We only know which pages matched.
-//
-// To show context in the search results, we need the
-// start index of the match, and for that, the keyword
-// search will have to be repeated on all returned
-// pages. This coupled with the fact this function
-// uses a lot of memory (all results returned at once
-// with entire pages) makes the following function not
-// very viable.
+// found. We only know which pages matched. To show context 
+// in the search results, we need the start index of the match, 
+// and for that, the keyword search will have to be repeated on 
+// all returned pages. This coupled with the fact this function
+// uses a lot of memory -- all results are returned at once
+// with entire pages -- makes it not very viable.
 //
 // A better function will retrieve a page at a time,
 // search once per page, and then release that memory
-// before moving on.
+// before moving on. This is probably scalable to a
+// couple of thousand bookmarks, which should be enough
+// for the purposes of this extension.
 SearchMarkDB.debugSearch = 
     function(keywords, callback) {
         SearchMarkDB.db.transaction(function(tx) {
@@ -172,6 +206,7 @@ SearchMarkDB.clear = function() {
     });
 }
 
+// remove the table and all stored information
 SearchMarkDB.purge = function() {
     SearchMarkDB.db.transaction(function(tx) {
         tx.executeSql('DROP TABLE pages', 
@@ -190,7 +225,7 @@ console.debug("Opened SearchMark database.");
 // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
 // SearchMarkDB.purge();
 // SearchMarkDB.clear();
-// localStorage['initialized'] = "no";
+//localStorage['initialized'] = "no";
 
 // initialize once only. Populate the database
 // by retrieving and storing bookmarked pages, and
@@ -201,7 +236,7 @@ if(!localStorage['initialized'] ||
     SearchMarkDB.createTable();
 
     chrome.bookmarks.getTree(function(bookmarks) {
-        getAndStoreBookmarkContents(bookmarks);
+        initBookmarkDatabase(bookmarks);
     });
 
     localStorage['initialized'] = "yes";
@@ -244,7 +279,51 @@ chrome.extension.onRequest.addListener(
         }
     });
 
+chrome.bookmarks.onChanged.addListener(
+    function(id, changeInfo) {
+        if(localStorage['initialized'] != "yes")
+            return;
+
+        getAndStoreBookmarkContent(
+            {id: id, url: changeInfo.url, title: changeInfo.title},
+            SearchMarkDB.updateBookmarkedPage);
+    });
+
+chrome.bookmarks.onCreated.addListener(
+    function(id, newBookmark) {
+        if(localStorage['initialized'] != "yes")
+            return;
+
+        getAndStoreBookmarkContent(
+            {id: id, url: newBookmark.url, title: newBookmark.title},
+            SearchMarkDB.addBookmarkedPage);
+    });
+
+chrome.bookmarks.onRemoved.addListener(
+    function(id, removeInfo) {
+        if(localStorage['initialized'] != "yes")
+            return;
+
+        gProcessedUrls.push(removeInfo.url);
+
+        SearchMarkDB.removeBookmarkedPage(id);
+    });
+
 // ================= CORE API ===================
+
+function informUIResultsDone()
+{
+    var result = {};
+
+    result.matchType = "DONE";
+
+    gPort.postMessage(result);
+
+    // cleanup
+    gSearchRegex = "";
+    gSearchKeywords = "";
+    gPort.disconnect();
+}
 
 function searchPageCb(tx, r) {
     for(var i = 0; i < r.rows.length; i++) {
@@ -298,11 +377,19 @@ function searchPageCb(tx, r) {
 
             gPort.postMessage(result);
         }
+
+        gRemainingSearch--;
+    }
+    
+    if(!gRemainingSearch) {
+        informUIResultsDone();
     }
 }
 
 // 'r' is a list of all stored bookmark URLs
 function searchBookmarkedPagesCb(tx, r) {
+    gRemainingSearch = r.rows.length;
+
     for(var i = 0; i < r.rows.length; i++) 
     {
         if(r.rows.item(i).title &&
@@ -317,7 +404,9 @@ function searchBookmarkedPagesCb(tx, r) {
             result.matchType = "title";
 
             gPort.postMessage(result);
-        } 
+
+            gRemainingSearch--;
+        }
         else if(r.rows.item(i).url.search(gSearchRegex) != -1) 
         { // handle URL matches here
             var result = {};
@@ -333,10 +422,16 @@ function searchBookmarkedPagesCb(tx, r) {
             result.matchType = "url";
 
             gPort.postMessage(result);
-        } else { // handle page here
+
+            gRemainingSearch--;
+        } else { // handle Page matches here
             SearchMarkDB.getPage(r.rows.item(i).id,
                                  searchPageCb);
         }
+    }
+
+    if(!gRemainingSearch) {
+        informUIResultsDone();
     }
 }
 
@@ -371,56 +466,51 @@ function searchBookmarkedPages() {
     SearchMarkDB.getStoredBookmarks(searchBookmarkedPagesCb);
 }
 
-function getAndStoreBookmarkContents(bookmarks) {
+function getAndStoreBookmarkContent(bookmark, storeInDB) {
+    try {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", bookmark.url, true);
+        xhr.onreadystatechange = function() {
+            try {
+                if (xhr.readyState == 4) {
+
+                    var pageNoHtml = 
+                        removeHTMLfromPage(xhr.responseText);
+
+                    // add page to database
+                    storeInDB(bookmark.id, bookmark.url,
+                              bookmark.title, pageNoHtml,
+                              xhr.responseText);
+
+                    gProcessedUrls.push(bookmark.url);
+                }
+            } catch(e) {
+                console.log(e.message);
+                storeInDB(bookmark.id, bookmark.url,
+                          bookmark.title, "", "");
+            }
+        }
+
+        xhr.send();
+    } catch(e) {
+        console.log(e.message + bookmark.url);
+        storeInDB(bookmark.id, bookmark.url,
+                  bookmark.title, "", "");
+    }
+}
+
+function initBookmarkDatabase(bookmarks) {
     bookmarks.forEach(function(bookmark) {
         if(bookmark.url && bookmark.url.match("^https?://*")) 
         { // url exists and is well formed
-            try {
-                var xhr = new XMLHttpRequest();
-                xhr.open("GET", bookmark.url, true);
-                xhr.onreadystatechange = function() {
-                    try {
-                        if (xhr.readyState == 4) {
-
-                            var pageNoHtml = 
-                                removeHTMLfromPage(xhr.responseText);
-
-                            // add page to databse
-                            SearchMarkDB.addBookmarkedPage(
-                                bookmark.id,
-                                bookmark.url,
-                                bookmark.title,
-                                pageNoHtml,
-                                xhr.responseText);
-                            
-                            gAddedUrls.push(bookmark.url);
-                        }
-                    } catch(e) {
-                        console.log(e.message);
-                        SearchMarkDB.addBookmarkedPage(
-                            bookmark.id,
-                            bookmark.url,
-                            bookmark.title,
-                            "",
-                            "");
-                    }
-                }
-                xhr.send();
-            } catch(e) {
-                console.log(e.message + bookmark.url);
-                SearchMarkDB.addBookmarkedPage(
-                    bookmark.id,
-                    bookmark.url,
-                    bookmark.title,
-                    "",
-                    "");
-            }
+            getAndStoreBookmarkContent(bookmark, 
+                                       SearchMarkDB.addBookmarkedPage);
         } else {
             console.debug("Skipping. " + bookmark.url);
         }
 
         if (bookmark.children)
-            getAndStoreBookmarkContents(bookmark.children);
+            initBookmarkDatabase(bookmark.children);
     });
 }
 </script>

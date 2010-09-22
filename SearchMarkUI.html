@@ -45,11 +45,17 @@ function startSearch() {
 //     page text matched, then result.text will contain 
 //     textual context.
 function processSearchResult(result) {
-    p = document.createElement("p");
-    p.innerHTML = '<a href="' + result.url + '">'
+    if(result.matchType == "DONE") {
+        resultString = "Search done.";
+    } else {
+        resultString = '<a href="' + result.url + '">'
         + result.title + '</a><br>' + result.text
         + '<br>(' + result.url + ')';
-    
+    }
+
+    p = document.createElement("p");
+    p.innerHTML = resultString;
+
     document.body.appendChild(p);
 }
 </script>
