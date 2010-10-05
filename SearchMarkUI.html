@@ -1,6 +1,9 @@
 <html>
 <head>
-<title>Search Bookmarked Pages</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Search Mark</title>
+<link rel="shortcut icon" href="logo.png"> 
+<link href="style.css" rel="stylesheet" type="text/css">
 <script language="Javascript">
 
 // Initialize communication channel between backend and UI.
@@ -28,6 +31,11 @@ function init() {
 // Take keywords from text box and send to
 // backend for searching.
 function startSearch() {
+    searchResultID = document.getElementById("searchResult");
+    while(searchResultID.firstChild){
+        searchResultID.removeChild(searchResult.firstChild);
+    }
+
     chrome.extension.sendRequest(
         {method: 'search', keywords: document.searchForm.searchBox.value}, 
         function() {});
@@ -45,28 +53,67 @@ function startSearch() {
 //     page text matched, then result.text will contain 
 //     textual context.
 function processSearchResult(result) {
+    if(result.matchType == "FIRST"){
+    searchResultID = document.getElementById("searchResult");
+    while(searchResultID.hasChildNodes()){
+        searchResultID.removeChild();
+    }
+    }
     if(result.matchType == "DONE") {
         resultString = "Search done.";
     } else {
-        resultString = '<a href="' + result.url + '">'
-        + result.title + '</a><br>' + result.text
-        + '<br>(' + result.url + ')';
+//        resultString = '<a href="' + result.url + '">'
+  //      + result.title + '</a><br>' + result.text
+    //    + '<br>(' + result.url + ')';
+
+        resultString = 
+        '<span class="ContentTitle">' + result.title +'</span>'
+        + '<img src="space.png" width="15" height="1" id="space">'
+        + '<input type="submit" name="deleteButton" id="deleteButton" value="Delete this bookmark"/><br>'
+        + '<span class="ContentText">' + result.text + '</span>'
+        + '<span class="ContentURL"><a class="ContentURL" href="' +
+        result.url + '">' + result.url + '</a></span>';
     }
 
     p = document.createElement("p");
     p.innerHTML = resultString;
 
-    document.body.appendChild(p);
+    searchResultID = document.getElementById("searchResult");
+    searchResultID.appendChild(p);
+    //document.body.appendChild(p);
 }
+
 </script>
 </head>
-<body onLoad="init()">
-<!-- All HTML for SearchMark UI needs to be here. -->
-<form name=searchForm>
-Search inside your bookmark:
-<input type="text" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById('searchButton').click()"/>
-
-<input type="button" id="searchButton" value="Search" onclick="startSearch();" />
-</form>
+<body class="oneColLiqCtrHdr" onLoad="init()">
+  <form name="searchForm">
+    <div id="container">
+      <div id="header">
+	<h1 align="center">
+          <img src="logoLarge.png" alt="sm" width="39" height="39" align="absbottom"> SearchMark       
+          <input name="searchbox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById('searchButton').click()"/>
+          <img src="space.png" width="7" height="1">
+	  <input type="button" id="searchButton" value="Search" onclick="startSearch();" />
+	</h1>
+	<!-- end #header --></div>
+      <div id="mainContent">
+	<table width="100%" border="0" cellspacing="10" cellpadding="0">
+	  <tr>
+	    <td width="70%" id="searchResult">
+	      <!--search result display here-->
+	    </td>
+	    <td width="30%" valign="top">
+	      <p>&nbsp;</p>
+	    </td>
+	  </tr>
+	</table>
+	<!-- end #mainContent --></div>
+      <div id="footer">
+	<p align="right" class="SmallText">Gnu License &lt;URL here&gt; &lt;release here&gt;</p>
+	<!-- end #footer --></div>
+      <!-- end #container --></div>
+  </form>
 </body>
 </html>
+
+
