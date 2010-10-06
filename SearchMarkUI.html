@@ -26,19 +26,26 @@ function init() {
             processSearchResult(result);
         });
     });
+
+   firstLayout();
+    
 }
 
 // Take keywords from text box and send to
 // backend for searching.
 function startSearch() {
-    searchResultID = document.getElementById("searchResult");
-    while(searchResultID.firstChild){
-        searchResultID.removeChild(searchResult.firstChild);
+    containerID = document.getElementById("container");
+    while(containerID.firstChild){
+        containerID.removeChild(containerID.firstChild);
     }
+
+    secondLayout();
 
     chrome.extension.sendRequest(
         {method: 'search', keywords: document.searchForm.searchBox.value}, 
         function() {});
+
+    
 }
 
 // Each search result will be delivered here.
@@ -53,23 +60,13 @@ function startSearch() {
 //     page text matched, then result.text will contain 
 //     textual context.
 function processSearchResult(result) {
-    if(result.matchType == "FIRST"){
-    searchResultID = document.getElementById("searchResult");
-    while(searchResultID.hasChildNodes()){
-        searchResultID.removeChild();
-    }
-    }
     if(result.matchType == "DONE") {
         resultString = "Search done.";
     } else {
-//        resultString = '<a href="' + result.url + '">'
-  //      + result.title + '</a><br>' + result.text
-    //    + '<br>(' + result.url + ')';
-
         resultString = 
         '<span class="ContentTitle">' + result.title +'</span>'
         + '<img src="space.png" width="15" height="1" id="space">'
-        + '<input type="submit" name="deleteButton" id="deleteButton" value="Delete this bookmark"/><br>'
+        + '<br>'
         + '<span class="ContentText">' + result.text + '</span>'
         + '<span class="ContentURL"><a class="ContentURL" href="' +
         result.url + '">' + result.url + '</a></span>';
@@ -82,35 +79,85 @@ function processSearchResult(result) {
     searchResultID.appendChild(p);
     //document.body.appendChild(p);
 }
+//the first page layout
+function firstLayout(){
+    containerID = document.getElementById("container");
+    headerContent = document.createElement("div");
+    headerContent.setAttribute('id','header');
+    hString = '<h1 align="center">&nbsp;</h1>';
+    headerContent.innerHTML = hString;
+
+    mainContent = document.createElement("div");
+    mainContent.setAttribute('id','mainContent');
+    mString = '<div align="center">'+
+               '<h1><img src="logoLarge.png" alt="sm" width="39" height="39" align="absbottom"> SearchMark'+ 
+	       '</h1>'+
+               '<p>'+
+		 '<input name="searchbox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById(\'searchButton\').click()"/>'+
+		 '<img src="space.png" width="7" height="1">'+
+		 '<input type="button" id="searchButton" value="Search" onclick="startSearch();" />'+
+               '</p>'+
+               '<p>&nbsp;</p>'+
+               '<p>&nbsp;</p>'+
+	     '</div>'+
+	     '<h2>&nbsp;</h2>';
+    mainContent.innerHTML = mString;
+
+    footerContent = document.createElement("div");
+    footerContent.setAttribute('id','footer');
+    fString = '<p align="right" class="SmallText">Gnu License &lt;URL here&gt; &lt;release here&gt;</p>';
+    footerContent.innerHTML = fString;
+
+    containerID.appendChild(headerContent);
+    containerID.appendChild(mainContent);
+    containerID.appendChild(footerContent); 
+}
+
+//layout when it shows the result
+function secondLayout(){
+    containerID = document.getElementById("container");
+    headerContent = document.createElement("div");
+    headerContent.setAttribute('id','header');
+    hString = '<h1 align="center">'+
+          '<img src="logoLarge.png" alt="sm" width="39" height="39" align="absbottom"> SearchMark'+ 
+          '<img src="space.png" width="7" height="1">'+      
+          '<input name="searchbox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById(\'searchButton\').click()"/>'+
+          '<img src="space.png" width="7" height="1">'+
+	  '<input type="button" id="searchButton" value="Search" onclick="startSearch();" />'+
+	'</h1>';
+    headerContent.innerHTML = hString;
+
+    mainContent = document.createElement("div");
+    mainContent.setAttribute('id','mainContent');
+    mString = '<table width="100%" border="0" cellspacing="10" cellpadding="0">'+
+	  '<tr>'+
+	    '<td width="70%" id="searchResult">'+
+	      '<!--search result display here-->'+
+	    '</td>'+
+	    '<td width="30%" valign="top">'+
+	      '<p>&nbsp;</p>'+
+	    '</td>'+
+	  '</tr>'+
+	'</table>';
+    mainContent.innerHTML = mString;
+
+    footerContent = document.createElement("div");
+    footerContent.setAttribute('id','footer');
+    fString = '<p align="right" class="SmallText">Gnu License &lt;URL here&gt; &lt;release here&gt;</p>';
+    footerContent.innerHTML = fString;
+
+    containerID.appendChild(headerContent);
+    containerID.appendChild(mainContent);
+    containerID.appendChild(footerContent);    
+}
 
 </script>
 </head>
 <body class="oneColLiqCtrHdr" onLoad="init()">
   <form name="searchForm">
     <div id="container">
-      <div id="header">
-	<h1 align="center">
-          <img src="logoLarge.png" alt="sm" width="39" height="39" align="absbottom"> SearchMark       
-          <input name="searchbox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById('searchButton').click()"/>
-          <img src="space.png" width="7" height="1">
-	  <input type="button" id="searchButton" value="Search" onclick="startSearch();" />
-	</h1>
-	<!-- end #header --></div>
-      <div id="mainContent">
-	<table width="100%" border="0" cellspacing="10" cellpadding="0">
-	  <tr>
-	    <td width="70%" id="searchResult">
-	      <!--search result display here-->
-	    </td>
-	    <td width="30%" valign="top">
-	      <p>&nbsp;</p>
-	    </td>
-	  </tr>
-	</table>
-	<!-- end #mainContent --></div>
-      <div id="footer">
-	<p align="right" class="SmallText">Gnu License &lt;URL here&gt; &lt;release here&gt;</p>
-	<!-- end #footer --></div>
+      
+
       <!-- end #container --></div>
   </form>
 </body>
