@@ -298,8 +298,6 @@ if(!localStorage['initialized'] ||
     });
 
     localStorage['initialized'] = "yes";
-    
-    console.debug("Saving Bookmarked pages to SearchMark database.");
 }
 
 // ========================== CORE ===============
@@ -543,6 +541,8 @@ function getAndStoreBookmarkContent(bookmark, storeInDB) {
                     storeInDB(bookmark.id, bookmark.url,
                               bookmark.title, pageNoHtml,
                               this.responseText);
+
+                    this.abort();
                 }
             } catch(e) {
                 console.log(e.message);
@@ -563,6 +563,7 @@ function initBookmarkDatabase(bookmarks) {
     bookmarks.forEach(function(bookmark) {
         if(bookmark.url && bookmark.url.match("^https?://*")) 
         { // url exists and is well formed
+            console.debug("Adding " + bookmark.url);
             getAndStoreBookmarkContent(bookmark, 
                                        SearchMarkDB.addBookmarkedPage);
         } else {
