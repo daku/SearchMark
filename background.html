@@ -68,10 +68,7 @@
 // Bookmarked page database
 var SearchMarkDB = {};
 
-// Contains bookmarks added to the database
-// Only used during first initialization after that
-// its empty.
-var gProcessedUrls = [];
+// Status indicator variables
 var gRemainingSearch = 0;
 
 // During each search, the keywords are placed here.
@@ -117,15 +114,15 @@ SearchMarkDB.onErrorCb = function(tx, e) {
 }
 
 SearchMarkDB.onAddCb = function(tx, r) {
-    console.log("Added. " + gProcessedUrls.pop());
+    console.log("Done adding bookmark.");
 }
 
 SearchMarkDB.onRemoveCb = function(tx, r) {
-    console.log("Removed. " + gProcessedUrls.pop());
+    console.log("Done removing bookmark.");
 }
 
 SearchMarkDB.onUpdateCb = function(tx, r) {
-    console.log("Updated. " + gProcessedUrls.pop());
+    console.log("Done updating bookmark");
 }
 
 SearchMarkDB.onClearCb = function(tx, r) {
@@ -188,7 +185,7 @@ SearchMarkDB.addBookmarkedPage =
 SearchMarkDB.removeBookmarkedPage = 
     function(theId) {
         SearchMarkDB.db.transaction(function(tx){
-            tx.executeSql('DELETE FROM pages WHERE id=?'
+            tx.executeSql('DELETE FROM pages WHERE id=?',
                           [theId],
                           SearchMarkDB.onRemoveCb,
                           SearchMarkDB.onErrorCb);
@@ -286,7 +283,7 @@ console.debug("Opened SearchMark database.");
 // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
 // SearchMarkDB.purge();
 // SearchMarkDB.clear();
-//localStorage['initialized'] = "no";
+// localStorage['initialized'] = "no";
 
 // initialize once only. Populate the database
 // by retrieving and storing bookmarked pages, and
@@ -365,8 +362,6 @@ chrome.bookmarks.onRemoved.addListener(
         if(localStorage['initialized'] != "yes")
             return;
 
-        gProcessedUrls.push(removeInfo.url);
-
         SearchMarkDB.removeBookmarkedPage(id);
     });
 
@@ -381,8 +376,10 @@ function informUIResultsDone()
     gPort.postMessage(result);
 
     // cleanup
-    gSearchRegex = "";
-    gSearchKeywords = "";
+    gSearchRegex = null;
+    gSearchKeywords = '';
+    gRemainingSearch = 0;
+
     gPort.disconnect();
 }
 
@@ -546,8 +543,6 @@ function getAndStoreBookmarkContent(bookmark, storeInDB) {
                     storeInDB(bookmark.id, bookmark.url,
                               bookmark.title, pageNoHtml,
                               this.responseText);
-
-                    gProcessedUrls.push(bookmark.url);
                 }
             } catch(e) {
                 console.log(e.message);
