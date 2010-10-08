@@ -1,0 +1,1 @@
+zip -r ../SearchMark.zip background.html manifest.json SearchMarkUI.html icon.png LICENSE README space.png COPYRIGHT logoLarge.png style.css
