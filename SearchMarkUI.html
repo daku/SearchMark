@@ -34,6 +34,8 @@ function init() {
 // Take keywords from text box and send to
 // backend for searching.
 function startSearch() {
+    searchkey = document.searchForm.searchBox.value;
+
     containerID = document.getElementById("container");
     while(containerID.firstChild){
         containerID.removeChild(containerID.firstChild);
@@ -41,8 +43,10 @@ function startSearch() {
 
     secondLayout();
 
+
+
     chrome.extension.sendRequest(
-        {method: 'search', keywords: document.searchForm.searchBox.value}, 
+        {method: 'search', keywords: searchkey}, 
         function() {});
 
     
@@ -93,7 +97,7 @@ function firstLayout(){
                '<h1><img src="logoLarge.png" alt="sm" width="39" height="39" align="absbottom"> SearchMark'+ 
 	       '</h1>'+
                '<p>'+
-		 '<input name="searchbox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById(\'searchButton\').click()"/>'+
+		 '<input name="searchBox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById(\'searchButton\').click()"/>'+
 		 '<img src="space.png" width="7" height="1">'+
 		 '<input type="button" id="searchButton" value="Search" onclick="startSearch();" />'+
                '</p>'+
@@ -121,7 +125,7 @@ function secondLayout(){
     hString = '<h1 align="center">'+
           '<img src="logoLarge.png" alt="sm" width="39" height="39" align="absbottom"> SearchMark'+ 
           '<img src="space.png" width="7" height="1">'+      
-          '<input name="searchbox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById(\'searchButton\').click()"/>'+
+          '<input name="searchBox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById(\'searchButton\').click()"/>'+
           '<img src="space.png" width="7" height="1">'+
 	  '<input type="button" id="searchButton" value="Search" onclick="startSearch();" />'+
 	'</h1>';

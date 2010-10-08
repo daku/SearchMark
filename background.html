@@ -73,7 +73,6 @@ var gRemainingSearch = 0;
 
 // During each search, the keywords are placed here.
 var gSearchRegex = "";
-var gSearchKeywords = "";
 var gContextLen = 200;
 
 // Communicate with extension UI
@@ -281,8 +280,8 @@ SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
 // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
-// SearchMarkDB.purge();
 // SearchMarkDB.clear();
+// SearchMarkDB.purge();
 // localStorage['initialized'] = "no";
 
 // initialize once only. Populate the database
@@ -320,10 +319,12 @@ chrome.extension.onRequest.addListener(
             
             callback('');
         } else if(request.method == 'search') {
-            gSearchKeywords = request.keywords;
+            console.log(request.keywords);
 
-            gSearchRegex = new RegExp('(' + request.keywords + ')',
-            'i');
+            var keywordArray = request.keywords.split(" ");
+
+            gSearchRegex = 
+                new RegExp('(' + keywordArray.join("|") + ')', 'i');
 
             gPort = chrome.extension.connect({name: "uiToBackend"});
 
@@ -375,7 +376,6 @@ function informUIResultsDone()
 
     // cleanup
     gSearchRegex = null;
-    gSearchKeywords = '';
     gRemainingSearch = 0;
 
     gPort.disconnect();
