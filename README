@@ -1,0 +1,25 @@
+SearchMark
+==========
+
+The extension has a front-end and a back-end (core search
+functionality). The front-end is the user interface and the back-end
+is the core search functionality like indexing and performing the
+search. Two main technologies used by the extension are HTML5
+databases --- to store the bookmarks and their page contents --- and
+the Javascript regular expression engine to perform the searches.
+
+Extension Files:
+
+* For the back-end
+** background.html: [Initialize] Add bookmarks and associated page 
+contents to database on first use. [Manage] Add, remove, or update 
+bookmarks in this database as when the user does the same. [Search]
+given a set of keywords from the UI search the database for them.
+
+* For the UI
+** icon.png: SearchMark logo
+** cheta, could you update this?
+
+* General 
+** manifest.json: mandatory permission file for all Google chrome 
+extensions
