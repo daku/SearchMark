@@ -1,8 +1,28 @@
 <html>
 <head>
 <script language="Javascript">
+// background.html: SearchMark back-end
+//
+// Copyright (C) 2010  Akshay Dua, and Candy Yiu
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
 // ====== MEMORY USAGE TRACKING =========
+// Track memory usage for initialization and search
+// routines.
+//
+// ====== INITIALIZATION
 // 5,116 K: Baseline (manifest + empty background.html 
 //                      + empty SearchmarkUI.html)
 // 7,024 K: + Code only.
@@ -61,6 +81,32 @@
 //     1.5 Why is my processing leaving unfreeable memory?
 //     1.6 How can we free the memory used up by the DB after 
 //         adding bookmarks to DB?
+//
+// ======= SEARCH
+//
+// 9,080 K: Baseline. Search sent by UI but backend does nothing.
+//   What's interesting is that every new set of keywords sent adds
+//   20 K of memory which eventually gets freed.
+// 
+// 9,756 K: Peak. + Create and destroy regular expression object
+// 9,072 K: Stable. 
+//   Ok everything gets freed eventually.
+// 
+// 10,150 K: Peak.
+// 9,064 K: Stable. + Connect to UI and disconnect.
+//    Takes a while, but this memory gets freed.
+//
+// 10,816 K: Peak. + Fetch from Db + Cleanup 
+// 9,552 K: Stable.
+//   About 0.5 MB is kept by the DB.
+//
+// 11,224 K: Peak. + Search title/url, but not page
+// 9,800 K: Stable.  
+//   About 0.5 MB by DB, 0.5 MB unaccounted for.
+//
+// 75,496 K: Peak. + Search page as well.
+// 14,168 K: Stable.
+//   What the F#&_?
 //
 
 // =============== GLOBALS ==============
@@ -380,12 +426,13 @@ function informUIResultsDone()
 }
 
 function searchPageCb(tx, r) {
-    for(var i = 0; i < r.rows.length; i++) {
-        var matchIdx;
+    var matchIdx = -1;
+    var context = '';
+    var result = {};
 
+    for(var i = 0; i < r.rows.length; i++) {
         if((matchIdx = 
             r.rows.item(i).page.search(gSearchRegex)) != -1) {
-            var context = '';
 
             context = r.rows.item(i).page.substring(
                 matchIdx - gContextLen, matchIdx + gContextLen);
@@ -420,8 +467,6 @@ function searchPageCb(tx, r) {
                 gSearchRegex, 
                 '<span class="ContentTextHighLight">$1</span>');
 
-            var result = {};
-
             result.url = r.rows.item(i).url;
             if(r.rows.item(i).title == undefined) {
                 result.title = r.rows.item(i).url;
@@ -445,14 +490,13 @@ function searchPageCb(tx, r) {
 // 'r' is a list of all stored bookmark URLs
 function searchBookmarkedPagesCb(tx, r) {
     gRemainingSearch = r.rows.length;
+    var result = {};
 
     for(var i = 0; i < r.rows.length; i++) 
     {
         if(r.rows.item(i).title &&
            r.rows.item(i).title.search(gSearchRegex) != -1) 
         { // handle Title matches here
-            var result = {};
-
             result.url = r.rows.item(i).url;
             result.title = r.rows.item(i).title.replace(
                 gSearchRegex, 
@@ -466,8 +510,6 @@ function searchBookmarkedPagesCb(tx, r) {
         }
         else if(r.rows.item(i).url.search(gSearchRegex) != -1) 
         { // handle URL matches here
-            var result = {};
-
             result.url = r.rows.item(i).url;
             if(r.rows.item(i).title == undefined) {
                 result.title = r.rows.item(i).url;
