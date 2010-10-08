@@ -319,8 +319,6 @@ chrome.extension.onRequest.addListener(
             
             callback('');
         } else if(request.method == 'search') {
-            console.log(request.keywords);
-
             var keywordArray = request.keywords.split(" ");
 
             gSearchRegex = 
