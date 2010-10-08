@@ -1,12 +1,12 @@
 SearchMark
 ==========
 
-The extension has a front-end and a back-end (core search
-functionality). The front-end is the user interface and the back-end
-is the core search functionality like indexing and performing the
-search. Two main technologies used by the extension are HTML5
-databases --- to store the bookmarks and their page contents --- and
-the Javascript regular expression engine to perform the searches.
+The extension has a front-end and a back-end. The front-end is the
+user interface and the back-end is the core search functionality like
+indexing and performing the search. Two main technologies used by the
+extension are HTML5 databases --- to store the bookmarks and their
+page contents --- and the Javascript regular expression engine to
+perform the searches.
 
 Extension Files:
 
