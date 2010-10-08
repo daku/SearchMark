@@ -23,3 +23,16 @@ given a set of keywords from the UI search the database for them.
 * General 
 ** manifest.json: mandatory permission file for all Google chrome 
 extensions
+
+Authors: 
+Akshay Dua (http://github.com/daku)
+Candy Yiu (http://github.com/cheta)
+
+Source Code:
+http://github.com/daku/SearchMark
+
+Issues:
+http://github.com/daku/SearchMark/issues
+
+Email:
+searchmark2010@gmail.com
