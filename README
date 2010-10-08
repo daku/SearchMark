@@ -1,6 +1,30 @@
 SearchMark
 ==========
 
+Find your bookmarked pages by searching not only their titles and web
+addresses, but also their content!
+
+When you need the information from a page you once bookmarked, but
+just can't find it anymore, SearchMark can help. The SearchMark Google
+Chrome Extension allows you to search your bookmarked pages, and we
+don't mean just the page title or its cryptic web address, but the
+page contents as well! We are sure that you will find this extension
+helpful in quickly and easily finding your bookmarks.
+
+After installation, the extension will index all your bookmarked
+pages. At anytime, click on the SearchMark icon in the toolbar to open
+and use the search page. Later, every time you add, remove, or change
+a bookmark the index will get updated and so will your search.
+
+The source code for this extension is available at
+http://github.com/daku/SearchMark. To report issues related to this
+extension, please visit http://github.com/daku/SearchMark/issues. You
+can also send an email to searchmark2010@gmail.com with your
+suggestions, feature requests, issues, or comments.
+
+Extension Architecture
+======================
+
 The extension has a front-end and a back-end. The front-end is the
 user interface and the back-end is the core search functionality like
 indexing and performing the search. Two main technologies used by the
