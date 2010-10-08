@@ -28,7 +28,7 @@ function init() {
     });
 
    firstLayout();
-    
+   document.searchForm.elements['searchBox'].focus();
 }
 
 // Take keywords from text box and send to
@@ -42,7 +42,7 @@ function startSearch() {
     }
 
     secondLayout();
-
+    document.searchForm.elements['searchBox'].focus();
 
 
     chrome.extension.sendRequest(
