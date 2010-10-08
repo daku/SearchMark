@@ -42,14 +42,10 @@ function startSearch() {
     }
 
     secondLayout();
-    document.searchForm.elements['searchBox'].focus();
-
 
     chrome.extension.sendRequest(
         {method: 'search', keywords: searchkey}, 
         function() {});
-
-    
 }
 
 // Each search result will be delivered here.
@@ -66,13 +62,17 @@ function startSearch() {
 function processSearchResult(result) {
     if(result.matchType == "DONE") {
         resultString = "Search done.";
+        document.searchForm.elements['searchBox'].focus();
     } else {
         resultString = 
         '<span class="ContentTitle">' + result.title +'</span>'
         + '<img src="space.png" width="15" height="1" id="space">'
-        + '<br>'
-        + '<span class="ContentText">' + result.text + '</span>'
-        + '<span class="ContentURL"><a class="ContentURL" href="' +
+        + '<br/>';
+        if(result.text != ""){
+            resultString += '<span class="ContentText">' + result.text + '</span><br/>';
+        }
+
+        resultString += '<span class="ContentURL"><a class="ContentURL" href="' +
         result.url + '">' + result.url + '</a></span>';
     }
 
