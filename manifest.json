@@ -1,6 +1,6 @@
 {
   "name": "SearchMark",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Find your bookmarked pages by searching not only their titles and web addresses, but also their content!",
   "minimum_chrome_version": "5.0",
   "background_page": "background.html",
