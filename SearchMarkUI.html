@@ -133,6 +133,11 @@ function secondLayout(){
 
     mainContent = document.createElement("div");
     mainContent.setAttribute('id','mainContent');
+
+    mString = '<div id="searchResult">'+
+              '<!--search result display here-->'+
+              '</div>';
+    /*
     mString = '<table width="100%" border="0" cellspacing="10" cellpadding="0">'+
 	  '<tr>'+
 	    '<td width="99%" id="searchResult">'+
@@ -143,6 +148,7 @@ function secondLayout(){
 	    '</td>'+
 	  '</tr>'+
 	'</table>';
+    */
     mainContent.innerHTML = mString;
 
     footerContent = document.createElement("div");
