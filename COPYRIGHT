@@ -1,9 +1,10 @@
 All files in this software can be redistributed and/or modified
 under the terms of the GNU General Public License as published 
 by the Free Software Foundation, either version 3 of the License, 
-or (at your option) any later version. The above terms apply to
-any file under the SearchMark source code directory.
+or (at your option) any later version.
 
 Copyright (C) 2010  Akshay Dua, and Candy Yiu
 
-See SearchMark/LICENSE for the complete GNU General Public License.
+The above terms apply to any file under the SearchMark source code
+directory. See file LICENSE for the complete GNU General Public
+License.
