@@ -8,6 +8,9 @@
     "default_icon": "icon.png",
     "default_title": "Search Bookmarked Pages"
   },
+  "icons": { "16": "logo16.png",
+             "48": "logo48.png",
+            "128": "logo128.png"},
   "permissions": [
     "tabs",
     "bookmarks",
