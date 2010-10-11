@@ -5,7 +5,7 @@
   "minimum_chrome_version": "5.0",
   "background_page": "background.html",
   "browser_action": {
-    "default_icon": "icon.png",
+    "default_icon": "logo48.png",
     "default_title": "Search Bookmarked Pages"
   },
   "icons": { "16": "logo16.png",
