@@ -158,6 +158,10 @@ SearchMarkDB.onErrorCb = function(tx, e) {
     console.log(e.message);
 }
 
+SearchMarkDB.onCreateErrorCb = function(tx, e) {
+    console.log("Create error: " + e.message);
+}
+
 SearchMarkDB.onAddCb = function(tx, r) {
     console.log("Done adding bookmark.");
 }
@@ -180,6 +184,8 @@ SearchMarkDB.onDeleteCb = function(tx, r) {
 
 SearchMarkDB.onCreateTableCb = function(tx, r) {
     console.log("Created SearchMark database table 'pages'.");
+    localStorage['initialized'] = "yes";
+    populateDb();
 }
 
 // special callback to print all the bookmark
@@ -202,13 +208,13 @@ SearchMarkDB.debugSearchPageCb = function(tx, rs) {
 // info, including the associated pages.
 SearchMarkDB.createTable = function() {
     SearchMarkDB.db.transaction(function(tx) {
-        tx.executeSql('CREATE TABLE IF NOT EXISTS ' 
-                      + 'pages(id INTEGER PRIMARY KEY, ' 
+        tx.executeSql('CREATE VIRTUAL TABLE '
+                      + 'pages USING fts3(id INTEGER PRIMARY KEY, ' 
                       + 'url TEXT, title TEXT, page TEXT, ' 
                       + 'htmlpage TEXT)', 
                       [],
                       SearchMarkDB.onCreateTableCb,
-                      SearchMarkDB.onErrorCb);
+                      SearchMarkDB.onCreateErrorCb);
     });
 }
 
@@ -326,9 +332,9 @@ SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
 // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
-// SearchMarkDB.clear();
-// SearchMarkDB.purge();
-// localStorage['initialized'] = "no";
+ SearchMarkDB.clear();
+ SearchMarkDB.purge();
+ localStorage['initialized'] = "no";
 
 // initialize once only. Populate the database
 // by retrieving and storing bookmarked pages, and
@@ -337,14 +343,14 @@ console.debug("Opened SearchMark database.");
 if(!localStorage['initialized'] ||
    localStorage['initialized'] != "yes") {
     SearchMarkDB.createTable();
+}
 
+function populateDb() {
     chrome.bookmarks.getTree(function(bookmarks) {
         initBookmarkDatabase(bookmarks);
     });
-
-    localStorage['initialized'] = "yes";
 }
-
+ 
 // ========================== CORE ===============
 
 chrome.browserAction.onClicked.addListener(

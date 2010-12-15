@@ -1,0 +1,147 @@
+<script>
+	// create the database
+	var database = window.openDatabase("SearchMark", "0.1", "SearchMark Database", 250 * 1024 * 1024);
+
+	if (!database) {
+	   console.log("Error opening database");
+	}
+	
+	// Create settings table
+	database.transaction(function(query) {
+		/*query.executeSql("DROP TABLE history", [],
+			function(transaction, result){
+				//console.log(result);
+			},
+			function(transaction, error){
+				console.log(error)
+			}
+		);*/
+		
+		query.executeSql("SELECT name FROM sqlite_master WHERE type='table' AND name='history';", [],
+			function(transaction, result){
+				if(result.rows.length == 0){
+					createHistoryTable(query);
+				}
+			},
+			function(transaction, error){
+				console.log(error);
+			}
+		);
+		
+	});
+	
+	createHistoryTable = function(query){
+		query.executeSql("CREATE VIRTUAL TABLE history USING fts3(bookmarkId INTEGER, url TEXT, title TEXT, content TEXT, lastVisited NUMERIC DEFAULT (datetime('now')))", [],
+			function(transaction, result){
+				showInitialSetupTab();
+			},
+			function(transaction, error){
+				console.log(error)
+			}
+		);
+	}
+	
+	showInitialSetupTab = function(){
+		chrome.tabs.create({
+			url: "initialIndex.html"
+		},
+		function(){
+			// do nothing.. the tab is what is done.
+		})
+	}
+	
+	
+	// listen for various bookmark events
+	chrome.bookmarks.onChanged.addListener(function(id, changeInfo){
+		indexUrl(changeInfo.url, id, null);
+	});
+	
+	chrome.bookmarks.onCreated.addListener(function(id, bookmark){
+		indexUrl(bookmark.url, id, null);
+	});
+		
+	// our content script calls this when we need to index new content
+	chrome.extension.onRequest.addListener(function(html, sender){
+		console.log(sender.tab.url);
+		console.log(html.length);
+		index(sender.tab.url, null, html, null);
+	});
+
+		
+	indexUrl = function(url, bookmarkId, callback){
+		try{
+			getUrl(url, bookmarkId, function(data, status, url, bookmarkId){
+				if(status == "OK"){
+					index(url, bookmarkId, data, null);
+				} else {
+					console.log("stat:" + status);
+				}
+				
+				if(callback != null){
+					callback('<p><span class="' + status + '">(' + status + ') ' + url + '.</span></p>');
+				}
+				
+			});
+		} catch(e) {
+			console.log(e);
+		}
+	}
+	
+	index = function(url, bookmarkId, html, screenshot){
+		// strip out HTML, scripts and styles
+		var content = html.replace(/(<script)((.|\r|\n)+?)(<\/script)((.|\r|\n)*?)(>)/igm, "");
+		content = content.replace(/(<link)((.|\r|\n)+?)(<\/link)((.|\r|\n)*?)(>)/igm, "");
+		content = content.replace(/(<style)((.|\r|\n)+?)(<\/style)((.|\r|\n)*?)(>)/igm, "");
+		content = content.replace(/(<(.|\r|\n)*?>)/ig, "");
+		content = content.replace(/(\s|\r|\n)+/igm, " ");
+		
+		// find the title
+		var title = html.match(/(<title.*?>)(.*?)(<\/title.*?>)/igm);
+		if (title != null && title.length) {
+			title = title[0].replace(/<.*?title.*?>/igm, "");
+		} else {
+			title = content.substr(0, 50) + "...";
+		}
+		
+		database.transaction(function(query) {
+			// this code here essentially mimics an 'upsert'.  It tries to update and, failing that, does an insert based on url
+			query.executeSql("UPDATE history SET bookmarkId = ?, title = ?, content = ?, lastVisited = ? WHERE bookmarkId = ? OR url = ?;", [bookmarkId, title, content, new Date(), bookmarkId, url],
+				function(transaction, result){
+					console.log(result);
+					// if we didn't update, let's do an insert
+					if(!result.rowsAffected){
+						//console.log(content);
+						query.executeSql("INSERT INTO history (bookmarkId, url, title, content, lastVisited) VALUES (?, ?, ?, ?, ?);", [bookmarkId, url, title, content, new Date()],
+							function(transaction, result){
+								console.log("added: " + url);
+								console.log("INSERT INTO history (bookmarkId, url, title, content, lastVisited) VALUES ("+bookmarkId+", '"+url+"', '"+title+"', '"+content+"', '"+ new Date() +"');");
+								console.log(result);
+							},
+							function(transaction, error){
+								console.log(error);
+							}
+						);
+					} else {
+						console.log("updated: " + url);						
+					}
+				},
+				function(transaction, error){
+					console.log(error);
+				}
+			);
+			
+		});	
+	}
+	
+	getUrl = function(url, bookmarkId, callback){
+		var req = new XMLHttpRequest();  
+		req.open('GET', url, true);  
+		req.onreadystatechange = function (aEvt) {  
+			if (req.readyState == 4) {
+				callback(req.responseText, req.statusText == "" ? "Failed" : req.statusText, url, bookmarkId);
+			}  
+		};  
+		req.send(null);
+	}
+	
+</script>

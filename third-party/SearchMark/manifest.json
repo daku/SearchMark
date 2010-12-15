@@ -1,0 +1,19 @@
+{
+  "name": "SearchMark",
+  "version": "1.1",
+  "description": "Allows you to search through your browsing history and booksmarks.",
+  "icons": { "128": "/images/searchmark_128.png" },
+  "background_page": "background.html",
+  "browser_action": {
+    "default_title": "",
+    "default_icon": "/images/searchmark_19.png",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["js/index.js"]
+    }
+  ],
+  "permissions": ["tabs", "bookmarks", "history", "*://*/*"]
+}
