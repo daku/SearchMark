@@ -1,438 +1,501 @@
 <html>
 <head>
-<script language="Javascript">
-// background.html: SearchMark back-end
-//
-// Copyright (C) 2010  Akshay Dua, and Candy Yiu
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
+<script language="Javascript" type="text/javascript">
+  // background.html: SearchMark back-end
+  //
+  // Copyright (C) 2010  Akshay Dua, and Candy Yiu
+  //
+  // This program is free software: you can redistribute it and/or modify
+  // it under the terms of the GNU General Public License as published by
+  // the Free Software Foundation, either version 3 of the License, or
+  // (at your option) any later version.
 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+  // This program is distributed in the hope that it will be useful,
+  // but WITHOUT ANY WARRANTY; without even the implied warranty of
+  // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-// ====== MEMORY USAGE TRACKING =========
-// Track memory usage for initialization and search
-// routines.
-//
-// ====== INITIALIZATION
-// 5,116 K: Baseline (manifest + empty background.html 
-//                      + empty SearchmarkUI.html)
-// 7,024 K: + Code only.
-// 
-// 7,152 K: + Database opened.
-// 
-// 8,960 K: + Empty table created.
-//
-// 7,972 K: Reload (Empty table in DB)
-// 
-// 8,100 K: + Get bookmarks from Google API
-//
-// 71,200 K: Peak. + Add bookmarks to DB
-// 53,084 K: Stable.
-//
-// 8,572 K: Reload. Big reduction.
-//   1. Why? What's causing memory to be held in
-//   previous run. Need to fix.
-//   2. Also, why is this more than when empty table
-//   in DB?
-//
-// 47,436 K: - Closures - Adding to DB
-//   So, ~24MB (33%) is due to closures and adding to DB.
-//   The most is due to XMLHttpRequestObject opening and 
-//   sending/receiving a request, and possibly other stuff.
-//   Now three questions to consider:
-//     1.1 How much is due to *only* XHR object opening and
-//        sending request?
-//     1.2 How can we free the memory held by lingering
-//        xhr objects? (once we add page to DB, we don't
-//        care about them)
-//     1.3 Which is more: memory via Closures, or Adding to DB?
-//
-// 8,488 K: - XHRobject.send (i.e. open but don't send)
-//   So, ~40MB for sending/receiving request. How to free this
-//   once adding to DB is done? (answers 1.1)
-//
-// 8,504 K: - XHRobject.open (more without open, than with?).
-//   Let's just assume open does not use lot of memory.
-//   (answers 1.1)
-//
-// 47,760 K: Peak. + XHRobject.send + XHRobject.open 
-//           + Closures w. outer ref
-// 47,252 K: Stable. 
-//   So, closures aren't the reason the memory is being hogged. Its
-//   the XHR object and adding to the DB that's taking memory.
-//   (answers 1.3) Then the next question is:
-//     1.4 Is the memory used for adding to DB freed automatically?
-//
-// 52,920 K: + Adding to DB - Processing page in closure
-//   Seems my implementation of removing HTML from a page is
-//   not so hot (resource wise). Nonetheless, adding to DB
-//   results in around 4 MB of unfreeable memory. Why? (answers 1.4)
-//   So, adding to DB is a smaller problem. Its my processing
-//   and the XHR object that are hogging memory. 
-//     1.5 Why is my processing leaving unfreeable memory?
-//     1.6 How can we free the memory used up by the DB after 
-//         adding bookmarks to DB?
-//
-// ======= SEARCH
-//
-// 9,080 K: Baseline. Search sent by UI but backend does nothing.
-//   What's interesting is that every new set of keywords sent adds
-//   20 K of memory which eventually gets freed.
-// 
-// 9,756 K: Peak. + Create and destroy regular expression object
-// 9,072 K: Stable. 
-//   Ok everything gets freed eventually.
-// 
-// 10,150 K: Peak.
-// 9,064 K: Stable. + Connect to UI and disconnect.
-//    Takes a while, but this memory gets freed.
-//
-// 10,816 K: Peak. + Fetch from Db + Cleanup 
-// 9,552 K: Stable.
-//   About 0.5 MB is kept by the DB.
-//
-// 11,224 K: Peak. + Search title/url, but not page
-// 9,800 K: Stable.  
-//   About 0.5 MB by DB, 0.5 MB unaccounted for.
-//
-// 75,496 K: Peak. + Search page as well.
-// 14,168 K: Stable.
-//   What the F#&_?
-//
+  // You should have received a copy of the GNU General Public License
+  // along with this program.  If not, see http://www.gnu.org/licenses/.
+  //
+  // ====== MEMORY USAGE TRACKING =========
+  // Track memory usage for initialization and search
+  // routines.
+  //
+  // ====== INITIALIZATION
+  // 5,116 K: Baseline (manifest + empty background.html 
+  //                      + empty SearchmarkUI.html)
+  // 7,024 K: + Code only.
+  // 
+  // 7,152 K: + Database opened.
+  // 
+  // 8,960 K: + Empty table created.
+  //
+  // 7,972 K: Reload (Empty table in DB)
+  // 
+  // 8,100 K: + Get bookmarks from Google API
+  //
+  // 71,200 K: Peak. + Add bookmarks to DB
+  // 53,084 K: Stable.
+  //
+  // 8,572 K: Reload. Big reduction.
+  //   1. Why? What's causing memory to be held in
+  //   previous run. Need to fix.
+  //   2. Also, why is this more than when empty table
+  //   in DB?
+  //
+  // 47,436 K: - Closures - Adding to DB
+  //   So, ~24MB (33%) is due to closures and adding to DB.
+  //   The most is due to XMLHttpRequestObject opening and 
+  //   sending/receiving a request, and possibly other stuff.
+  //   Now three questions to consider:
+  //     1.1 How much is due to *only* XHR object opening and
+  //        sending request?
+  //     1.2 How can we free the memory held by lingering
+  //        xhr objects? (once we add page to DB, we don't
+  //        care about them)
+  //     1.3 Which is more: memory via Closures, or Adding to DB?
+  //
+  // 8,488 K: - XHRobject.send (i.e. open but don't send)
+  //   So, ~40MB for sending/receiving request. How to free this
+  //   once adding to DB is done? (answers 1.1)
+  //
+  // 8,504 K: - XHRobject.open (more without open, than with?).
+  //   Let's just assume open does not use lot of memory.
+  //   (answers 1.1)
+  //
+  // 47,760 K: Peak. + XHRobject.send + XHRobject.open 
+  //           + Closures w. outer ref
+  // 47,252 K: Stable. 
+  //   So, closures aren't the reason the memory is being hogged. Its
+  //   the XHR object and adding to the DB that's taking memory.
+  //   (answers 1.3) Then the next question is:
+  //     1.4 Is the memory used for adding to DB freed automatically?
+  //
+  // 52,920 K: + Adding to DB - Processing page in closure
+  //   Seems my implementation of removing HTML from a page is
+  //   not so hot (resource wise). Nonetheless, adding to DB
+  //   results in around 4 MB of unfreeable memory. Why? (answers 1.4)
+  //   So, adding to DB is a smaller problem. Its my processing
+  //   and the XHR object that are hogging memory. 
+  //     1.5 Why is my processing leaving unfreeable memory?
+  //     1.6 How can we free the memory used up by the DB after 
+  //         adding bookmarks to DB?
+  //
+  // ======= SEARCH
+  //
+  // 9,080 K: Baseline. Search sent by UI but backend does nothing.
+  //   What's interesting is that every new set of keywords sent adds
+  //   20 K of memory which eventually gets freed.
+  // 
+  // 9,756 K: Peak. + Create and destroy regular expression object
+  // 9,072 K: Stable. 
+  //   Ok everything gets freed eventually.
+  // 
+  // 10,150 K: Peak.
+  // 9,064 K: Stable. + Connect to UI and disconnect.
+  //    Takes a while, but this memory gets freed.
+  //
+  // 10,816 K: Peak. + Fetch from Db + Cleanup 
+  // 9,552 K: Stable.
+  //   About 0.5 MB is kept by the DB.
+  //
+  // 11,224 K: Peak. + Search title/url, but not page
+  // 9,800 K: Stable.  
+  //   About 0.5 MB by DB, 0.5 MB unaccounted for.
+  //
+  // 75,496 K: Peak. + Search page as well.
+  // 14,168 K: Stable.
+  //   What the F#&_?
+  //
 
-// =============== GLOBALS ==============
+  // =============== GLOBALS ==============
 
-// Bookmarked page database
-var SearchMarkDB = {};
+  // Bookmarked page database
+  var SearchMarkDB = {};
 
-// Status indicator variables
-var gRemainingSearch = 0;
+  // Status indicator variables
+  var gRemainingSearch = 0;
 
-// During each search, the keywords are placed here.
-var gSearchRegex = "";
-var gContextLen = 200;
+  // During each search, the keywords are placed here.
+  var gSearchRegex = "";
+  var gContextLen = 200;
 
-// Communicate with extension UI
-var gPort;
+  // Communicate with extension UI
+  var gPort;
 
-// Note to self. Why I need the above global variable:
-// In the current state of the database API, if I search
-// it, then the results don't contain any info about
-// what was searched. This is due to the async callbacks
-// that return the result. If callbacks were more 
-// thoughtfully designed, they would allow one to pass 
-// some private information to it, that is sent back when 
-// the callback is called. The whole reason behind this 
-// extra argument is that callbacks cause a state change: 
-// from the function you are in, to the callback itself.
-// But, I don't want to loose the previous state, maybe
-// I had arguments to the function that called the function
-// that initiated a callback that I need to use to process 
-// the results from the callback. But now, I am
-// forced be in the callback where I don't have that info
-// anymore. The key idea: when designing a callback allow
-// some state to be registered with it.
+  // Note to self. Why I need the above global variable:
+  // In the current state of the database API, if I search
+  // it, then the results don't contain any info about
+  // what was searched. This is due to the async callbacks
+  // that return the result. If callbacks were more 
+  // thoughtfully designed, they would allow one to pass 
+  // some private information to it, that is sent back when 
+  // the callback is called. The whole reason behind this 
+  // extra argument is that callbacks cause a state change: 
+  // from the function you are in, to the callback itself.
+  // But, I don't want to loose the previous state, maybe
+  // I had arguments to the function that called the function
+  // that initiated a callback that I need to use to process 
+  // the results from the callback. But now, I am
+  // forced be in the callback where I don't have that info
+  // anymore. The key idea: when designing a callback allow
+  // some state to be registered with it.
 
-// ======================== DATABASE API ==================
+  // ======================== DATABASE API ==================
 
-// Open the database
-SearchMarkDB.db = null;
-SearchMarkDB.open = function() {
+  // Open the database
+  SearchMarkDB.db = null;
+  SearchMarkDB.open = function()
+  {
     var dbSize = 200 * 1024 * 1024; // 200 MB
-    SearchMarkDB.db = openDatabase('SearchMarkDB', 
-                                   '1.0', 'Bookmark Page Storage', 
-                                   dbSize);
-}
+      SearchMarkDB.db =
+          openDatabase('SearchMarkDB', '1.0', 'Bookmark Page Storage', dbSize);
+    }
 
-// Error and success callbacks
-SearchMarkDB.onErrorCb = function(tx, e) {
+  // Error and success callbacks
+  SearchMarkDB.onErrorCb = function(tx, e)
+  {
     console.log(e.message);
-}
+  }
 
-SearchMarkDB.onCreateErrorCb = function(tx, e) {
+  SearchMarkDB.onCreateErrorCb = function(tx, e)
+  {
     console.log("Create error: " + e.message);
-}
+  }
 
-SearchMarkDB.onAddCb = function(tx, r) {
+  SearchMarkDB.onAddCb = function(tx, r)
+  {
     console.log("Done adding bookmark.");
-}
+  }
 
-SearchMarkDB.onRemoveCb = function(tx, r) {
+  SearchMarkDB.onRemoveCb = function(tx, r)
+  {
     console.log("Done removing bookmark.");
-}
+  }
 
-SearchMarkDB.onUpdateCb = function(tx, r) {
+  SearchMarkDB.onUpdateCb = function(tx, r)
+  {
     console.log("Done updating bookmark");
-}
+  }
 
-SearchMarkDB.onClearCb = function(tx, r) {
+  SearchMarkDB.onClearCb = function(tx, r)
+  {
     console.log("Cleared SearchMark database.");
-}
+  }
 
-SearchMarkDB.onDeleteCb = function(tx, r) {
+  SearchMarkDB.onDeleteCb = function(tx, r)
+  {
     console.log("Deleted SearchMark database table 'pages'.");
-}
+  }
 
-SearchMarkDB.onCreateTableCb = function(tx, r) {
+  SearchMarkDB.onCreateTableCb = function(tx, r)
+  {
     console.log("Created SearchMark database table.");
     localStorage['initialized'] = "yes";
     populateDb();
-}
+  }
 
-// special callback to print all the bookmark
-// URLs once they are retrieved from the database.
-SearchMarkDB.showAllBookmarksCb = function(tx, r) {
-    for(var i = 0; i < r.rows.length; i++) {
-        console.log("Stored. " + r.rows.item(i).url);
+  // special callback to print all the bookmark
+  // URLs once they are retrieved from the database.
+  SearchMarkDB.showAllBookmarksCb = function(tx, r)
+  {
+    for ( var i = 0; i < r.rows.length; i++) {
+      console.log("Stored. " + r.rows.item(i).url);
     }
-}
+  }
 
-// Deprecated. Used for debugging only.
-// Show search results.
-SearchMarkDB.debugSearchPageCb = function(tx, rs) {
-    for(var i = 0; i < rs.rows.length; i++) {
-        console.log(rs.rows.item(i).url);
+  // Deprecated. Used for debugging only.
+  // Show search results.
+  SearchMarkDB.debugSearchPageCb = function(tx, rs)
+  {
+    for ( var i = 0; i < rs.rows.length; i++) {
+      console.log(rs.rows.item(i).url);
     }
-}
+  }
 
-// create the table that stores all the bookmark
-// info, including the associated pages.
-SearchMarkDB.createTable = function() {
-    SearchMarkDB.db.transaction(function(tx) {
-        tx.executeSql('CREATE VIRTUAL TABLE '
-                      + 'pages USING fts3(id INTEGER PRIMARY KEY, ' 
-                      + 'url TEXT, title TEXT, page TEXT, ' 
-                      + 'htmlpage TEXT)', 
-                      [],
-                      SearchMarkDB.onCreateTableCb,
-                      SearchMarkDB.onCreateErrorCb);
-    });
-}
+  // create the table that stores all the bookmark
+  // info, including the associated pages.
+  SearchMarkDB.createTable =
+      function()
+      {
+        SearchMarkDB.db
+            .transaction(function(tx)
+            {
+              tx
+                  .executeSql(
+                    'CREATE VIRTUAL TABLE ' + 'pages USING fts3(id INTEGER PRIMARY KEY, ' + 'url TEXT, title TEXT, page TEXT)',
+                    [],
+                    getCallback("create table", "pages", 1),
+                    getCallback("create table", "pages", 0));
 
-// add a bookmark and associated page to the database
-SearchMarkDB.addBookmarkedPage = 
-    function(newId, newUrl, newTitle, newPlainPage, newHtmlPage) {
-        SearchMarkDB.db.transaction(function(tx){
-            tx.executeSql('INSERT INTO pages(id, url, title, '
-                          + 'page, htmlpage) ' 
-                          + 'VALUES (?,?,?,?,?)', 
-                          [newId, newUrl, newTitle, 
-                           newPlainPage, newHtmlPage],
-                          SearchMarkDB.onAddCb,
-                          SearchMarkDB.onErrorCb);
+              tx
+                  .executeSql(
+                    'CREATE TABLE IF NOT EXISTS ' + 'rawpages (id INTEGER PRIMARY KEY, htmlpage TEXT)',
+                    [],
+                    getCallback("create table", "rawpages", 1),
+                    getCallback("create table", "rawpages", 0));
+            });
+      }
+
+  // add a bookmark and associated page to the database
+  SearchMarkDB.addBookmarkedPage =
+      function(newId, newUrl, newTitle, newPlainPage, newHtmlPage)
+      {
+        SearchMarkDB.db.transaction(function(tx)
+        {
+          // html-free page for searching
+            tx.executeSql(
+              'INSERT INTO pages(id, url, title, ' + 'page) ' + 'VALUES (?,?,?,?)',
+              [ newId, newUrl, newTitle, newPlainPage ],
+              getCallback("insert page", newId + " " + newUrl, 1),
+              getCallback("insert page", newId + " " + newUrl, 0));
+
+            // html page for showing cached version
+            tx.executeSql('INSERT INTO rawpages(id, htmlpage) ' + 'VALUES (?,?)', [
+                newId, newHtmlPage ], getCallback("insert page", "raw " + newId
+                + " " + newUrl, 1), getCallback("insert page", "raw " + newId + " "
+                + newUrl, 0));
+          });
+      }
+
+  // remove a bookmarked page from the database
+  SearchMarkDB.removeBookmarkedPage =
+      function(theId)
+      {
+        SearchMarkDB.db.transaction(function(tx)
+        {
+          tx.executeSql('DELETE FROM pages WHERE id=?', [ theId ], getCallback(
+            "remove page",
+            theId,
+            1), getCallback("remove page", theId, 0));
         });
-    }
+      }
 
-// remove a bookmarked page from the database
-SearchMarkDB.removeBookmarkedPage = 
-    function(theId) {
-        SearchMarkDB.db.transaction(function(tx){
-            tx.executeSql('DELETE FROM pages WHERE id=?',
-                          [theId],
-                          SearchMarkDB.onRemoveCb,
-                          SearchMarkDB.onErrorCb);
+  // update an already stored bookmarked page
+  SearchMarkDB.updateBookmarkedPage =
+      function(theId, theUrl, theTitle, thePlainPage, theHtmlPage)
+      {
+        SearchMarkDB.db
+            .transaction(function(tx)
+            {
+              tx
+                  .executeSql(
+                    'UPDATE pages SET url=?, ' + 'title=?, page=?, htmlpage=? ' + 'WHERE id=?',
+                    [ theUrl, theTitle, thePlainPage, theHtmlPage, theId ],
+                    SearchMarkDB.onUpdateCb,
+                    SearchMarkDB.onErrorCb);
+            });
+      }
+
+  // get a page given the bookmark id
+  SearchMarkDB.getPage =
+      function(id, callback)
+      {
+        SearchMarkDB.db.transaction(function(tx)
+        {
+          tx.executeSql(
+            'SELECT * FROM pages WHERE id = ' + id,
+            [],
+            callback,
+            SearchMarkDB.onErrorCb);
         });
-    } 
-    
-// update an already stored bookmarked page
-SearchMarkDB.updateBookmarkedPage = 
-    function(theId, theUrl, theTitle, thePlainPage, theHtmlPage) {
-        SearchMarkDB.db.transaction(function(tx){
-            tx.executeSql('UPDATE pages SET url=?, '
-                          + 'title=?, page=?, htmlpage=? ' 
-                          + 'WHERE id=?', 
-                          [theUrl, theTitle, thePlainPage,
-                           theHtmlPage, theId],
-                          SearchMarkDB.onUpdateCb,
-                          SearchMarkDB.onErrorCb);
+      }
+
+  // get all bookmark URLs. Callback function can
+  // be provided use the results as necessary.
+  SearchMarkDB.getStoredBookmarks =
+      function(callback)
+      {
+        SearchMarkDB.db.transaction(function(tx)
+        {
+          tx.executeSql(
+            'SELECT id,url,title FROM pages',
+            [],
+            callback,
+            SearchMarkDB.onErrorCb);
         });
-    }
+      }
 
-// get a page given the bookmark id
-SearchMarkDB.getPage = function(id, callback) {
-    SearchMarkDB.db.transaction(function(tx) {
-        tx.executeSql('SELECT * FROM pages WHERE id = ' + id,
-                      [],
-                      callback,
-                      SearchMarkDB.onErrorCb);
-    });
-}
+  SearchMarkDB.doSearch =
+      function(callback, keywords)
+      {
+        SearchMarkDB.db
+            .transaction(function(tx)
+            {
+              tx
+                  .executeSql(
+                    'SELECT id,url,title,snippet(pages) as snippet ' + 'FROM pages WHERE ' + 'pages MATCH ' + keywords,
+                    [],
+                    callback,
+                    SearchMarkDB.onErrorCb);
+            });
+      }
 
-// get all bookmark URLs. Callback function can
-// be provided use the results as necessary.
-SearchMarkDB.getStoredBookmarks = 
-    function(callback) {
-        SearchMarkDB.db.transaction(function(tx) {
-            tx.executeSql('SELECT id,url,title FROM pages', 
-                          [], 
-                          callback,
-                          SearchMarkDB.onErrorCb);
+  // Deprecated. Although simple to implement, this does
+  // not tell us where in a page a match for the keywords was
+  // found. We only know which pages matched. To show context 
+  // in the search results, we need the start index of the match, 
+  // and for that, the keyword search will have to be repeated on 
+  // all returned pages. This coupled with the fact this function
+  // uses a lot of memory -- all results are returned at once
+  // with entire pages -- makes it not very viable.
+  //
+  // A better function will retrieve a page at a time,
+  // search once per page, and then release that memory
+  // before moving on. This is probably scalable to a
+  // couple of thousand bookmarks, which should be enough
+  // for the purposes of this extension.
+  SearchMarkDB.debugSearch =
+      function(keywords, callback)
+      {
+        SearchMarkDB.db.transaction(function(tx)
+        {
+          var searchTxt = "'%" + keywords + "%'";
+          tx.executeSql(
+            "SELECT url FROM pages WHERE " + "page LIKE " + searchTxt + " OR "
+                + "url LIKE " + searchTxt,
+            [],
+            callback,
+            SearchMarkDB.onErrorCb);
         });
-    }
+      }
 
-SearchMarkDB.doSearch = 
-    function(callback, keywords) {
-        SearchMarkDB.db.transaction(function(tx) {
-            tx.executeSql('SELECT id,url,title,snippet(pages) as snippet '
-                          + 'FROM pages WHERE '
-                          + 'pages MATCH '
-                          + keywords,
-                          [],
-                          callback,
-                          SearchMarkDB.onErrorCb);
+  // clear all stored information.
+  SearchMarkDB.clear =
+      function()
+      {
+        SearchMarkDB.db.transaction(function(tx)
+        {
+          tx.executeSql('DELETE FROM pages', [], getCallback(
+            "clear table",
+            "pages",
+            1), getCallback("clear table", "pages", 0));
+
+          tx.executeSql('DELETE FROM rawpages', [], getCallback(
+            "clear table",
+            "rawpages",
+            1), getCallback("clear table", "rawpages", 0));
+
         });
-    }
+      }
 
-// Deprecated. Although simple to implement, this does
-// not tell us where in a page a match for the keywords was
-// found. We only know which pages matched. To show context 
-// in the search results, we need the start index of the match, 
-// and for that, the keyword search will have to be repeated on 
-// all returned pages. This coupled with the fact this function
-// uses a lot of memory -- all results are returned at once
-// with entire pages -- makes it not very viable.
-//
-// A better function will retrieve a page at a time,
-// search once per page, and then release that memory
-// before moving on. This is probably scalable to a
-// couple of thousand bookmarks, which should be enough
-// for the purposes of this extension.
-SearchMarkDB.debugSearch = 
-    function(keywords, callback) {
-        SearchMarkDB.db.transaction(function(tx) {
-            var searchTxt = "'%" + keywords + "%'";
-            tx.executeSql("SELECT url FROM pages WHERE "
-                          + "page LIKE " + searchTxt + " OR " 
-                          + "url LIKE " + searchTxt,
-                          [],
-                          callback, 
-                          SearchMarkDB.onErrorCb);
+  // remove the table and all stored information
+  SearchMarkDB.purge =
+      function()
+      {
+        SearchMarkDB.db.transaction(function(tx)
+        {
+          tx.executeSql('DROP TABLE pages', [], getCallback(
+            "delete table",
+            "pages",
+            1), getCallback("delete table", "pages", 0));
+
+          tx.executeSql('DROP TABLE rawpages', [], getCallback(
+            "delete table",
+            "rawpages",
+            1), getCallback("delete table", "rawpages", 0));
         });
-    }
+      }
 
-// clear all stored information.
-SearchMarkDB.clear = function() {
-    SearchMarkDB.db.transaction(function(tx) {
-        tx.executeSql('DELETE FROM pages', [],
-                      SearchMarkDB.onClearCb,
-                      SearchMarkDB.onErrorCb);
-    });
-}
+  // ================== INIT ===============
 
-// remove the table and all stored information
-SearchMarkDB.purge = function() {
-    SearchMarkDB.db.transaction(function(tx) {
-        tx.executeSql('DROP TABLE pages', 
-                      [],
-                      SearchMarkDB.onDeleteCb,
-                      SearchMarkDB.onErrorCb);
-    });
-}
+  // open the database each time extension loads.
+  SearchMarkDB.open();
+  console.debug("Opened SearchMark database.");
 
-// ================== INIT ===============
+  // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
+  SearchMarkDB.clear();
+  SearchMarkDB.purge();
+  localStorage['initialized'] = "no";
 
-// open the database each time extension loads.
-SearchMarkDB.open();
-console.debug("Opened SearchMark database.");
-
-// SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
-// SearchMarkDB.clear();
-// SearchMarkDB.purge();
-// localStorage['initialized'] = "no";
-
-// initialize once only. Populate the database
-// by retrieving and storing bookmarked pages, and
-// URLs. If initialized but want to reinitialize,
-// just set localStorage['initialized'] to "no".
-if(!localStorage['initialized'] ||
-   localStorage['initialized'] != "yes") {
+  // initialize once only. Populate the database
+  // by retrieving and storing bookmarked pages, and
+  // URLs. If initialized but want to reinitialize,
+  // just set localStorage['initialized'] to "no".
+  if (!localStorage['initialized'] || localStorage['initialized'] != "yes") {
     SearchMarkDB.createTable();
-}
+  }
 
-function populateDb() {
-    chrome.bookmarks.getTree(function(bookmarks) {
-        initBookmarkDatabase(bookmarks);
+  chrome.bookmarks.getTree(function(bookmarks)
+  {
+    initBookmarkDatabase(bookmarks);
+  });
+
+  // ========================== CORE ===============
+
+  chrome.browserAction.onClicked.addListener(function(tab)
+  {
+    chrome.tabs.create( {
+      'url' : 'SearchMarkUI.html'
+    }, function(newTab)
+    {
     });
-}
- 
-// ========================== CORE ===============
+  });
 
-chrome.browserAction.onClicked.addListener(
-    function(tab) {
-        chrome.tabs.create(
-            {'url':'SearchMarkUI.html'},
-            function(newTab) {});
-    });
+  chrome.extension.onRequest.addListener(function(request, sender, callback)
+  {
+    // Deprecated. Using only for debugging.
+      // See note on DB.debugSearch
+      if (request.method == 'debugSearch') {
+        SearchMarkDB.debugSearch(request.keywords, SearchMarkDB.debugSearchPageCb);
 
-chrome.extension.onRequest.addListener(
-    function(request, sender, callback) {
-        // Deprecated. Using only for debugging.
-        // See note on DB.debugSearch
-        if(request.method == 'debugSearch') {
-            SearchMarkDB.debugSearch(
-                request.keywords,
-                SearchMarkDB.debugSearchPageCb);
-            
-            callback('');
-        } else if(request.method == 'search') {
-            var keywordArray = request.keywords.split(" ");
+        callback('');
+      } else if (request.method == 'search') {
+        var keywordArray = request.keywords.split(" ");
 
-            gSearchRegex = 
-                new RegExp('(' + keywordArray.join("|") + ')', 'i');
+        gSearchRegex = new RegExp('(' + keywordArray.join("|") + ')', 'i');
 
-            gPort = chrome.extension.connect({name: "uiToBackend"});
+        gPort = chrome.extension.connect( {
+          name : "uiToBackend"
+        });
 
-            console.log(request.keywords);
+        console.log(request.keywords);
 
-            searchBookmarkedPages("'" + request.keywords + "'");
+        searchBookmarkedPages("'" + request.keywords + "'");
 
-            callback('');
-        } else {
-            callback('');
-        }
-    });
-
-chrome.bookmarks.onChanged.addListener(
-    function(id, changeInfo) {
-        if(localStorage['initialized'] != "yes")
-            return;
-
-        getAndStoreBookmarkContent(
-            {id: id, url: changeInfo.url, title: changeInfo.title},
-            SearchMarkDB.updateBookmarkedPage);
+        callback('');
+      } else {
+        callback('');
+      }
     });
 
-chrome.bookmarks.onCreated.addListener(
-    function(id, newBookmark) {
-        if(localStorage['initialized'] != "yes")
-            return;
+  chrome.bookmarks.onChanged.addListener(function(id, changeInfo)
+  {
+    if (localStorage['initialized'] != "yes")
+      return;
 
-        getAndStoreBookmarkContent(
-            {id: id, url: newBookmark.url, title: newBookmark.title},
-            SearchMarkDB.addBookmarkedPage);
-    });
+    getAndStoreBookmarkContent( {
+      id : id,
+      url : changeInfo.url,
+      title : changeInfo.title
+    }, SearchMarkDB.updateBookmarkedPage);
+  });
 
-chrome.bookmarks.onRemoved.addListener(
-    function(id, removeInfo) {
-        if(localStorage['initialized'] != "yes")
-            return;
+  chrome.bookmarks.onCreated.addListener(function(id, newBookmark)
+  {
+    if (localStorage['initialized'] != "yes")
+      return;
 
-        SearchMarkDB.removeBookmarkedPage(id);
-    });
+    getAndStoreBookmarkContent( {
+      id : id,
+      url : newBookmark.url,
+      title : newBookmark.title
+    }, SearchMarkDB.addBookmarkedPage);
+  });
 
-// ================= CORE API ===================
+  chrome.bookmarks.onRemoved.addListener(function(id, removeInfo)
+  {
+    if (localStorage['initialized'] != "yes")
+      return;
 
-function informUIResultsDone()
-{
+    SearchMarkDB.removeBookmarkedPage(id);
+  });
+
+  // ================= CORE API ===================
+
+  function informUIResultsDone()
+  {
     var result = {};
 
     result.matchType = "DONE";
@@ -444,151 +507,144 @@ function informUIResultsDone()
     gRemainingSearch = 0;
 
     gPort.disconnect();
-}
+  }
 
-function searchPageCb(tx, r) {
+  function searchPageCb(tx, r)
+  {
     var matchIdx = -1;
     var context = '';
     var result = {};
 
-    for(var i = 0; i < r.rows.length; i++) {
-        if((matchIdx = 
-            r.rows.item(i).page.search(gSearchRegex)) != -1) {
+    for ( var i = 0; i < r.rows.length; i++) {
+      if ((matchIdx = r.rows.item(i).page.search(gSearchRegex)) != -1) {
 
-            context = r.rows.item(i).page.substring(
-                matchIdx - gContextLen, matchIdx + gContextLen);
+        context =
+            r.rows.item(i).page.substring(matchIdx - gContextLen, matchIdx
+                + gContextLen);
 
-            // Trim incomplete word from end.
-            // We only look for whitespace until a third of
-            // the context's length.
-            for(var endIdx = context.length-1;
-                endIdx > context.length - context.length/3; 
-                --endIdx) 
-            {
-                if(context[endIdx] == ' ' && endIdx != context.length-1) {
-                    context = context.slice(0, endIdx);
-                    context = context.concat("...");
-                    break;
-                }
-            }
-
-            // now trim from beginning.
-            for(var startIdx = 0; startIdx < context.length/3;
-                ++startIdx) 
-            {
-                if(context[startIdx] == ' ' && startIdx != 0) {
-                    context = context.slice(startIdx);
-                    context = (new String("...")).concat(context);
-                    break;
-                }
-            }
-
-            // bold matched text
-            context = context.replace(
-                gSearchRegex, 
-                '<span class="ContentTextHighLight">$1</span>');
-
-            result.url = r.rows.item(i).url;
-            if(r.rows.item(i).title == undefined) {
-                result.title = r.rows.item(i).url;
-            } else {
-                result.title = r.rows.item(i).title;
-            }
-            result.text = context;
-            result.matchType = "page";
-
-            gPort.postMessage(result);
+        // Trim incomplete word from end.
+        // We only look for whitespace until a third of
+        // the context's length.
+        for ( var endIdx = context.length - 1; endIdx > context.length
+            - context.length / 3; --endIdx) {
+          if (context[endIdx] == ' ' && endIdx != context.length - 1) {
+            context = context.slice(0, endIdx);
+            context = context.concat("...");
+            break;
+          }
         }
 
-        gRemainingSearch--;
-    }
-    
-    if(!gRemainingSearch) {
-        informUIResultsDone();
-    }
-}
+        // now trim from beginning.
+        for ( var startIdx = 0; startIdx < context.length / 3; ++startIdx) {
+          if (context[startIdx] == ' ' && startIdx != 0) {
+            context = context.slice(startIdx);
+            context = (new String("...")).concat(context);
+            break;
+          }
+        }
 
-// 'r' is a list of all stored bookmark URLs
-function searchBookmarkedPagesCb2(tx, r) {
-    gRemainingSearch = r.rows.length;
-    var result = {};
+        // bold matched text
+        context =
+            context.replace(
+              gSearchRegex,
+              '<span class="ContentTextHighLight">$1</span>');
 
-    for(var i = 0; i < r.rows.length; i++) 
-    {
         result.url = r.rows.item(i).url;
-        result.title = r.rows.item(i).title;
-        result.text = r.rows.item(i).snippet;
+        if (r.rows.item(i).title == undefined) {
+          result.title = r.rows.item(i).url;
+        } else {
+          result.title = r.rows.item(i).title;
+        }
+        result.text = context;
         result.matchType = "page";
-        
+
         gPort.postMessage(result);
-        
-        gRemainingSearch--;
+      }
+
+      gRemainingSearch--;
     }
 
-    if(!gRemainingSearch) {
-        informUIResultsDone();
-    }    
-}
+    if (!gRemainingSearch) {
+      informUIResultsDone();
+    }
+  }
 
-// 'r' is a list of all stored bookmark URLs
-function searchBookmarkedPagesCb(tx, r) {
+  // 'r' is a list of all stored bookmark URLs
+  function searchBookmarkedPagesCb2(tx, r)
+  {
     gRemainingSearch = r.rows.length;
     var result = {};
 
-    for(var i = 0; i < r.rows.length; i++) 
-    {
-        if(r.rows.item(i).title &&
-           r.rows.item(i).title.search(gSearchRegex) != -1) 
-        { // handle Title matches here
-            result.url = r.rows.item(i).url;
-            result.title = r.rows.item(i).title.replace(
-                gSearchRegex, 
-                '<span class="ContentTextHighLight">$1</span>');
-            result.text = "";
-            result.matchType = "title";
+    for ( var i = 0; i < r.rows.length; i++) {
+      result.url = r.rows.item(i).url;
+      result.title = r.rows.item(i).title;
+      result.text = r.rows.item(i).snippet;
+      result.matchType = "page";
 
-            gPort.postMessage(result);
+      gPort.postMessage(result);
 
-            gRemainingSearch--;
-        }
-        else if(r.rows.item(i).url.search(gSearchRegex) != -1) 
-        { // handle URL matches here
-            result.url = r.rows.item(i).url;
-            if(r.rows.item(i).title == undefined) {
-                result.title = r.rows.item(i).url;
-            } else {
-                result.title = r.rows.item(i).title;
-            }
-            result.text = r.rows.item(i).url.replace(
-                gSearchRegex, 
-                '<span class="ContentTextHighLight">$1</span>');
-            result.matchType = "url";
-
-            gPort.postMessage(result);
-
-            gRemainingSearch--;
-        } else { // handle Page matches here
-            SearchMarkDB.getPage(r.rows.item(i).id,
-                                 searchPageCb);
-        }
+      gRemainingSearch--;
     }
 
-    if(!gRemainingSearch) {
-        informUIResultsDone();
+    if (!gRemainingSearch) {
+      informUIResultsDone();
     }
-}
+  }
 
-function removeHTMLfromPage(page) {
+  // 'r' is a list of all stored bookmark URLs
+  function searchBookmarkedPagesCb(tx, r)
+  {
+    gRemainingSearch = r.rows.length;
+    var result = {};
+
+    for ( var i = 0; i < r.rows.length; i++) {
+      if (r.rows.item(i).title && r.rows.item(i).title.search(gSearchRegex) != -1) { // handle Title matches here
+        result.url = r.rows.item(i).url;
+        result.title =
+            r.rows.item(i).title.replace(
+              gSearchRegex,
+              '<span class="ContentTextHighLight">$1</span>');
+        result.text = "";
+        result.matchType = "title";
+
+        gPort.postMessage(result);
+
+        gRemainingSearch--;
+      } else if (r.rows.item(i).url.search(gSearchRegex) != -1) { // handle URL matches here
+        result.url = r.rows.item(i).url;
+        if (r.rows.item(i).title == undefined) {
+          result.title = r.rows.item(i).url;
+        } else {
+          result.title = r.rows.item(i).title;
+        }
+        result.text =
+            r.rows.item(i).url.replace(
+              gSearchRegex,
+              '<span class="ContentTextHighLight">$1</span>');
+        result.matchType = "url";
+
+        gPort.postMessage(result);
+
+        gRemainingSearch--;
+      } else { // handle Page matches here
+        SearchMarkDB.getPage(r.rows.item(i).id, searchPageCb);
+      }
+    }
+
+    if (!gRemainingSearch) {
+      informUIResultsDone();
+    }
+  }
+
+  function removeHTMLfromPage(page)
+  {
     // reduce spaces, remove new lines
     var pagetxt = page.replace(/\s+/gm, " ");
 
     // remove 'script', 'head', 'style' tags
-    pagetxt = pagetxt.replace(
-            /<\s*?head.*?>.*?<\s*?\/\s*?head\s*?>/i, " ");
-    pagetxt = pagetxt.replace(
-            /<\s*?script.*?>.*?<\s*?\/\s*?script\s*?>/gi, " ");
-    pagetxt = pagetxt.replace(
-            /<\s*?style.*?>.*?<\s*?\/\s*?style\s*?>/gi, " ");
+    pagetxt = pagetxt.replace(/<\s*?head.*?>.*?<\s*?\/\s*?head\s*?>/i, " ");
+    pagetxt = pagetxt.replace(/<\s*?script.*?>.*?<\s*?\/\s*?script\s*?>/gi, " ");
+    pagetxt = pagetxt.replace(/<\s*?style.*?>.*?<\s*?\/\s*?style\s*?>/gi, " ");
 
     // Now remove other tags
     pagetxt = pagetxt.replace(/<.*?\/?>/g, " ");
@@ -603,61 +659,83 @@ function removeHTMLfromPage(page) {
     pagetxt = pagetxt.replace(/\s+/gm, " ");
 
     return pagetxt;
-}
+  }
 
-function searchBookmarkedPages(keywords) {
-//    SearchMarkDB.getStoredBookmarks(searchBookmarkedPagesCb);
+  function searchBookmarkedPages(keywords)
+  {
+    //    SearchMarkDB.getStoredBookmarks(searchBookmarkedPagesCb);
     SearchMarkDB.doSearch(searchBookmarkedPagesCb2, keywords);
-}
+  }
 
-function getAndStoreBookmarkContent(bookmark, storeInDB) {
+  function getAndStoreBookmarkContent(bookmark, storeInDB)
+  {
     try {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", bookmark.url, true);
-        xhr.onreadystatechange = function() {
-            try {
-                if (this.readyState == 4) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", bookmark.url, true);
+      xhr.onreadystatechange = function()
+      {
+        try {
+          if (this.readyState == 4) {
 
-                    var pageNoHtml = 
-                        removeHTMLfromPage(this.responseText);
+            var pageNoHtml = removeHTMLfromPage(this.responseText);
 
-                    // add page to database
-                    storeInDB(bookmark.id, bookmark.url,
-                              bookmark.title, pageNoHtml,
-                              this.responseText);
+            // add page to database
+          storeInDB(
+            bookmark.id,
+            bookmark.url,
+            bookmark.title,
+            pageNoHtml,
+            this.responseText);
 
-                    this.abort();
-                }
-            } catch(e) {
-                console.log(e.message);
-                storeInDB(bookmark.id, bookmark.url,
-                          bookmark.title, "", "");
-            }
+          this.abort();
         }
-
-        xhr.send();
-    } catch(e) {
-        console.log(e.message + bookmark.url);
-        storeInDB(bookmark.id, bookmark.url,
-                  bookmark.title, "", "");
+      } catch (e) {
+        console.log(e.message);
+        storeInDB(bookmark.id, bookmark.url, bookmark.title, "", "");
+      }
     }
-}
 
-function initBookmarkDatabase(bookmarks) {
-    bookmarks.forEach(function(bookmark) {
-        if(bookmark.url && bookmark.url.match("^https?://*")) 
-        { // url exists and is well formed
-            console.debug("Adding " + bookmark.url);
-            getAndStoreBookmarkContent(bookmark, 
-                                       SearchMarkDB.addBookmarkedPage);
+      xhr.send();
+    } catch (e) {
+      console.log(e.message + bookmark.url);
+      storeInDB(bookmark.id, bookmark.url, bookmark.title, "", "");
+    }
+  }
+
+  function initBookmarkDatabase(bookmarks)
+  {
+    bookmarks.forEach(function(bookmark)
+    {
+      if (bookmark.url && bookmark.url.match("^https?://*")) { // url exists and is well formed
+          console.debug("Adding " + bookmark.url);
+          getAndStoreBookmarkContent(bookmark, SearchMarkDB.addBookmarkedPage);
         } else {
-            console.debug("Skipping. " + bookmark.url);
+          console.debug("Skipping. " + bookmark.url);
         }
 
         if (bookmark.children)
-            initBookmarkDatabase(bookmark.children);
-    });
-}
+          initBookmarkDatabase(bookmark.children);
+      });
+  }
+
+  function getCallback(cbname, msg, type)
+  {
+    switch (cbname) {
+    default:
+      if (type == 1) // success callback
+        return function(tx, e)
+        {
+          console.debug("succeded: " + cbname + " " + msg);
+        }
+      else
+        // failure callback
+        return function(tx, e)
+        {
+          console.debug("failed: " + cbname + " " + msg);
+          console.log("  " + e.message);
+        }
+    }
+  }
 </script>
 </head>
 </html>
