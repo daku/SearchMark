@@ -405,22 +405,28 @@
   console.debug("Opened SearchMark database.");
 
   // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
-  SearchMarkDB.clear();
-  SearchMarkDB.purge();
-  localStorage['initialized'] = "no";
+  // SearchMarkDB.clear();
+  // SearchMarkDB.purge();
+  // localStorage['initialized'] = "yes";
 
   // initialize once only. Populate the database
   // by retrieving and storing bookmarked pages, and
   // URLs. If initialized but want to reinitialize,
   // just set localStorage['initialized'] to "no".
-  if (!localStorage['initialized'] || localStorage['initialized'] != "yes") {
-    SearchMarkDB.createTable();
+  if (!localStorage['initialized'] || localStorage['initialized'] !=
+      "yes") {
+      SearchMarkDB.createTable();
+
+      chrome.bookmarks.getTree(
+          function(bookmarks)
+          {
+    	      initBookmarkDatabase(bookmarks);
+          });
+
+      localStorage['initialized'] = "yes";
   }
 
-  chrome.bookmarks.getTree(function(bookmarks)
-  {
-    initBookmarkDatabase(bookmarks);
-  });
+
 
   // ========================== CORE ===============
 
