@@ -1,0 +1,7 @@
+;; Object SearchMark
+;; EDE project file.
+(ede-proj-project "SearchMark"
+  :name "SearchMark"
+  :file "Project.ede"
+  :targets 'nil
+  )
