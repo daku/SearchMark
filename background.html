@@ -41,12 +41,6 @@ SearchMarkDB.open = function()
         openDatabase('SearchMarkDB', '1.0', 'Bookmark Page Storage', dbSize);
 }
 
-// Error and success callbacks
-SearchMarkDB.onErrorCb = function(tx, e)
-{
-    console.log(e.message);
-}
-
 // create the table that stores all the bookmark
 // info, including the associated pages.
 SearchMarkDB.createTable =
