@@ -279,20 +279,6 @@
             });
       }
 
-  // get a page given the bookmark id
-  SearchMarkDB.getPage =
-      function(id, callback)
-      {
-        SearchMarkDB.db.transaction(function(tx)
-        {
-          tx.executeSql(
-            'SELECT * FROM pages WHERE id = ' + id,
-            [],
-            callback,
-            SearchMarkDB.onErrorCb);
-        });
-      }
-
   // get all bookmark URLs. Callback function can
   // be provided use the results as necessary.
   SearchMarkDB.getStoredBookmarks =
@@ -402,13 +388,7 @@ chrome.extension.onRequest.addListener(
     function(request, sender, callback)
     {
         if (request.method == 'search') {
-            var keywordArray = request.keywords.split(" ");
-
-            gSearchRegex = new RegExp('(' + keywordArray.join("|") + ')', 'i');
-
-            gPort = chrome.extension.connect( {
-                name : "uiToBackend"
-            });
+            gPort = chrome.extension.connect( {name : "uiToBackend"});
 
             console.log(request.keywords);
 
@@ -420,42 +400,45 @@ chrome.extension.onRequest.addListener(
         }
     });
 
-  chrome.bookmarks.onChanged.addListener(function(id, changeInfo)
-  {
-    if (localStorage['initialized'] != "yes")
-      return;
+chrome.bookmarks.onChanged.addListener(
+    function(id, changeInfo)
+    {
+        if (localStorage['initialized'] != "yes")
+            return;
 
-    getAndStoreBookmarkContent( {
-      id : id,
-      url : changeInfo.url,
-      title : changeInfo.title
-    }, SearchMarkDB.updateBookmarkedPage);
-  });
+        getAndStoreBookmarkContent( 
+            {id : id, 
+             url : changeInfo.url,
+             title : changeInfo.title}, 
+            SearchMarkDB.updateBookmarkedPage);
+    });
 
-  chrome.bookmarks.onCreated.addListener(function(id, newBookmark)
-  {
-    if (localStorage['initialized'] != "yes")
-      return;
+chrome.bookmarks.onCreated.addListener(
+    function(id, newBookmark)
+    {
+        if (localStorage['initialized'] != "yes")
+            return;
 
-    getAndStoreBookmarkContent( {
-      id : id,
-      url : newBookmark.url,
-      title : newBookmark.title
-    }, SearchMarkDB.addBookmarkedPage);
-  });
+        getAndStoreBookmarkContent( {
+            id : id,
+            url : newBookmark.url,
+            title : newBookmark.title
+        }, SearchMarkDB.addBookmarkedPage);
+    });
 
-  chrome.bookmarks.onRemoved.addListener(function(id, removeInfo)
-  {
-    if (localStorage['initialized'] != "yes")
-      return;
+chrome.bookmarks.onRemoved.addListener(
+    function(id, removeInfo)
+    {
+        if (localStorage['initialized'] != "yes")
+            return;
 
-    SearchMarkDB.removeBookmarkedPage(id);
-  });
+        SearchMarkDB.removeBookmarkedPage(id);
+    });
 
-  // ================= CORE API ===================
+// ================= CORE API ===================
 
-  function informUIResultsDone()
-  {
+function informUIResultsDone()
+{
     var result = {};
 
     result.matchType = "DONE";
@@ -467,137 +450,31 @@ chrome.extension.onRequest.addListener(
     gRemainingSearch = 0;
 
     gPort.disconnect();
-  }
+}
 
-  function searchPageCb(tx, r)
-  {
-    var matchIdx = -1;
-    var context = '';
+function searchBookmarkedPagesCb(tx, r)
+{
+    gRemainingSearch = r.rows.length;
     var result = {};
 
     for ( var i = 0; i < r.rows.length; i++) {
-      if ((matchIdx = r.rows.item(i).page.search(gSearchRegex)) != -1) {
-
-        context =
-            r.rows.item(i).page.substring(matchIdx - gContextLen, matchIdx
-                + gContextLen);
-
-        // Trim incomplete word from end.
-        // We only look for whitespace until a third of
-        // the context's length.
-        for ( var endIdx = context.length - 1; endIdx > context.length
-            - context.length / 3; --endIdx) {
-          if (context[endIdx] == ' ' && endIdx != context.length - 1) {
-            context = context.slice(0, endIdx);
-            context = context.concat("...");
-            break;
-          }
-        }
-
-        // now trim from beginning.
-        for ( var startIdx = 0; startIdx < context.length / 3; ++startIdx) {
-          if (context[startIdx] == ' ' && startIdx != 0) {
-            context = context.slice(startIdx);
-            context = (new String("...")).concat(context);
-            break;
-          }
-        }
-
-        // bold matched text
-        context =
-            context.replace(
-              gSearchRegex,
-              '<span class="ContentTextHighLight">$1</span>');
-
         result.url = r.rows.item(i).url;
-        if (r.rows.item(i).title == undefined) {
-          result.title = r.rows.item(i).url;
-        } else {
-          result.title = r.rows.item(i).title;
-        }
-        result.text = context;
+        result.title = r.rows.item(i).title;
+        result.text = r.rows.item(i).snippet;
         result.matchType = "page";
 
         gPort.postMessage(result);
-      }
-
-      gRemainingSearch--;
-    }
-
-    if (!gRemainingSearch) {
-      informUIResultsDone();
-    }
-  }
-
-  // 'r' is a list of all stored bookmark URLs
-  function searchBookmarkedPagesCb2(tx, r)
-  {
-    gRemainingSearch = r.rows.length;
-    var result = {};
-
-    for ( var i = 0; i < r.rows.length; i++) {
-      result.url = r.rows.item(i).url;
-      result.title = r.rows.item(i).title;
-      result.text = r.rows.item(i).snippet;
-      result.matchType = "page";
-
-      gPort.postMessage(result);
-
-      gRemainingSearch--;
-    }
-
-    if (!gRemainingSearch) {
-      informUIResultsDone();
-    }
-  }
-
-  // 'r' is a list of all stored bookmark URLs
-  function searchBookmarkedPagesCb(tx, r)
-  {
-    gRemainingSearch = r.rows.length;
-    var result = {};
-
-    for ( var i = 0; i < r.rows.length; i++) {
-      if (r.rows.item(i).title && r.rows.item(i).title.search(gSearchRegex) != -1) { // handle Title matches here
-        result.url = r.rows.item(i).url;
-        result.title =
-            r.rows.item(i).title.replace(
-              gSearchRegex,
-              '<span class="ContentTextHighLight">$1</span>');
-        result.text = "";
-        result.matchType = "title";
-
-        gPort.postMessage(result);
 
         gRemainingSearch--;
-      } else if (r.rows.item(i).url.search(gSearchRegex) != -1) { // handle URL matches here
-        result.url = r.rows.item(i).url;
-        if (r.rows.item(i).title == undefined) {
-          result.title = r.rows.item(i).url;
-        } else {
-          result.title = r.rows.item(i).title;
-        }
-        result.text =
-            r.rows.item(i).url.replace(
-              gSearchRegex,
-              '<span class="ContentTextHighLight">$1</span>');
-        result.matchType = "url";
-
-        gPort.postMessage(result);
-
-        gRemainingSearch--;
-      } else { // handle Page matches here
-        SearchMarkDB.getPage(r.rows.item(i).id, searchPageCb);
-      }
     }
 
     if (!gRemainingSearch) {
-      informUIResultsDone();
+        informUIResultsDone();
     }
-  }
+}
 
-  function removeHTMLfromPage(page)
-  {
+function removeHTMLfromPage(page)
+{
     // reduce spaces, remove new lines
     var pagetxt = page.replace(/\s+/gm, " ");
 
@@ -619,83 +496,85 @@ chrome.extension.onRequest.addListener(
     pagetxt = pagetxt.replace(/\s+/gm, " ");
 
     return pagetxt;
-  }
+}
 
-  function searchBookmarkedPages(keywords)
-  {
-    //    SearchMarkDB.getStoredBookmarks(searchBookmarkedPagesCb);
-    SearchMarkDB.doSearch(searchBookmarkedPagesCb2, keywords);
-  }
+function searchBookmarkedPages(keywords)
+{
+    SearchMarkDB.doSearch(searchBookmarkedPagesCb, keywords);
+}
 
-  function getAndStoreBookmarkContent(bookmark, storeInDB)
-  {
+function getAndStoreBookmarkContent(bookmark, storeInDB)
+{
     try {
-      var xhr = new XMLHttpRequest();
-      xhr.open("GET", bookmark.url, true);
-      xhr.onreadystatechange = function()
-      {
-        try {
-          if (this.readyState == 4) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", bookmark.url, true);
+        xhr.onreadystatechange = function()
+        {
+            try {
+                if (this.readyState == 4) {
 
-            var pageNoHtml = removeHTMLfromPage(this.responseText);
+                    var pageNoHtml = removeHTMLfromPage(this.responseText);
 
-            // add page to database
-          storeInDB(
-            bookmark.id,
-            bookmark.url,
-            bookmark.title,
-            pageNoHtml,
-            this.responseText);
+                    // add page to database
+                    storeInDB(
+                        bookmark.id,
+                        bookmark.url,
+                        bookmark.title,
+                        pageNoHtml,
+                        this.responseText);
 
-          this.abort();
+                    this.abort();
+                }
+            } catch (e) {
+                console.log(e.message);
+                storeInDB(bookmark.id, bookmark.url, bookmark.title, "", "");
+            }
         }
-      } catch (e) {
-        console.log(e.message);
-        storeInDB(bookmark.id, bookmark.url, bookmark.title, "", "");
-      }
-    }
 
-      xhr.send();
+        xhr.send();
     } catch (e) {
-      console.log(e.message + bookmark.url);
-      storeInDB(bookmark.id, bookmark.url, bookmark.title, "", "");
+        console.log(e.message + bookmark.url);
+        storeInDB(bookmark.id, bookmark.url, bookmark.title, "", "");
     }
-  }
+}
 
-  function initBookmarkDatabase(bookmarks)
-  {
-    bookmarks.forEach(function(bookmark)
-    {
-      if (bookmark.url && bookmark.url.match("^https?://*")) { // url exists and is well formed
-          console.debug("Adding " + bookmark.url);
-          getAndStoreBookmarkContent(bookmark, SearchMarkDB.addBookmarkedPage);
-        } else {
-          console.debug("Skipping. " + bookmark.url);
-        }
+function initBookmarkDatabase(bookmarks)
+{
+    bookmarks.forEach(
+        function(bookmark)
+        {
+            if (bookmark.url && 
+                bookmark.url.match("^https?://*")) 
+            { // url exists and is well formed
+                console.debug("Adding " + bookmark.url);
+                getAndStoreBookmarkContent(bookmark, SearchMarkDB.addBookmarkedPage);
+            } else {
+                console.debug("Skipping. " + bookmark.url);
+            }
 
-        if (bookmark.children)
-          initBookmarkDatabase(bookmark.children);
-      });
-  }
+            if (bookmark.children)
+                initBookmarkDatabase(bookmark.children);
+        });
+}
 
-  function getCallback(cbname, msg, type)
-  {
+function getCallback(cbname, msg, type)
+{
     switch (cbname) {
     default:
-      if (type == 1) // success callback
-        return function(tx, e)
+        if (type == 1) // success callback
+            return function(tx, e)
         {
-          console.debug("succeded: " + cbname + " " + msg);
+            console.debug("succeded: " + cbname + " " + msg);
         }
-      else
-        // failure callback
-        return function(tx, e)
+        else
+            // failure callback
+            return function(tx, e)
         {
-          console.debug("failed: " + cbname + " " + msg);
-          console.log("  " + e.message);
+            console.debug("failed: " + cbname + " " + msg);
+            console.log("  " + e.message);
         }
     }
-  }
+}
 </script>
 </head>
 </html>
