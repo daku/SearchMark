@@ -205,15 +205,6 @@
     }
   }
 
-  // Deprecated. Used for debugging only.
-  // Show search results.
-  SearchMarkDB.debugSearchPageCb = function(tx, rs)
-  {
-    for ( var i = 0; i < rs.rows.length; i++) {
-      console.log(rs.rows.item(i).url);
-    }
-  }
-
   // create the table that stores all the bookmark
   // info, including the associated pages.
   SearchMarkDB.createTable =
@@ -332,35 +323,6 @@
             });
       }
 
-  // Deprecated. Although simple to implement, this does
-  // not tell us where in a page a match for the keywords was
-  // found. We only know which pages matched. To show context 
-  // in the search results, we need the start index of the match, 
-  // and for that, the keyword search will have to be repeated on 
-  // all returned pages. This coupled with the fact this function
-  // uses a lot of memory -- all results are returned at once
-  // with entire pages -- makes it not very viable.
-  //
-  // A better function will retrieve a page at a time,
-  // search once per page, and then release that memory
-  // before moving on. This is probably scalable to a
-  // couple of thousand bookmarks, which should be enough
-  // for the purposes of this extension.
-  SearchMarkDB.debugSearch =
-      function(keywords, callback)
-      {
-        SearchMarkDB.db.transaction(function(tx)
-        {
-          var searchTxt = "'%" + keywords + "%'";
-          tx.executeSql(
-            "SELECT url FROM pages WHERE " + "page LIKE " + searchTxt + " OR "
-                + "url LIKE " + searchTxt,
-            [],
-            callback,
-            SearchMarkDB.onErrorCb);
-        });
-      }
-
   // clear all stored information.
   SearchMarkDB.clear =
       function()
@@ -398,72 +360,64 @@
         });
       }
 
-  // ================== INIT ===============
+// ================== INIT ===============
 
-  // open the database each time extension loads.
-  SearchMarkDB.open();
-  console.debug("Opened SearchMark database.");
+// open the database each time extension loads.
+SearchMarkDB.open();
+console.debug("Opened SearchMark database.");
 
-  // SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
-  // SearchMarkDB.clear();
-  // SearchMarkDB.purge();
-  // localStorage['initialized'] = "yes";
+// SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
+// SearchMarkDB.clear();
+// SearchMarkDB.purge();
+// localStorage['initialized'] = "yes";
 
-  // initialize once only. Populate the database
-  // by retrieving and storing bookmarked pages, and
-  // URLs. If initialized but want to reinitialize,
-  // just set localStorage['initialized'] to "no".
-  if (!localStorage['initialized'] || localStorage['initialized'] !=
-      "yes") {
-      SearchMarkDB.createTable();
+// initialize once only. Populate the database
+// by retrieving and storing bookmarked pages, and
+// URLs. If initialized but want to reinitialize,
+// just set localStorage['initialized'] to "no".
+if (!localStorage['initialized'] || localStorage['initialized'] !=
+    "yes") {
+    SearchMarkDB.createTable();
 
-      chrome.bookmarks.getTree(
-          function(bookmarks)
-          {
-    	      initBookmarkDatabase(bookmarks);
-          });
-
-      localStorage['initialized'] = "yes";
-  }
-
-
-
-  // ========================== CORE ===============
-
-  chrome.browserAction.onClicked.addListener(function(tab)
-  {
-    chrome.tabs.create( {
-      'url' : 'SearchMarkUI.html'
-    }, function(newTab)
-    {
-    });
-  });
-
-  chrome.extension.onRequest.addListener(function(request, sender, callback)
-  {
-    // Deprecated. Using only for debugging.
-      // See note on DB.debugSearch
-      if (request.method == 'debugSearch') {
-        SearchMarkDB.debugSearch(request.keywords, SearchMarkDB.debugSearchPageCb);
-
-        callback('');
-      } else if (request.method == 'search') {
-        var keywordArray = request.keywords.split(" ");
-
-        gSearchRegex = new RegExp('(' + keywordArray.join("|") + ')', 'i');
-
-        gPort = chrome.extension.connect( {
-          name : "uiToBackend"
+    chrome.bookmarks.getTree(
+        function(bookmarks)
+        {
+    	    initBookmarkDatabase(bookmarks);
         });
 
-        console.log(request.keywords);
+    localStorage['initialized'] = "yes";
+}
 
-        searchBookmarkedPages("'" + request.keywords + "'");
+// ========================== CORE ===============
 
-        callback('');
-      } else {
-        callback('');
-      }
+chrome.browserAction.onClicked.addListener(
+    function(tab)
+    {
+        chrome.tabs.create( 
+            {'url' : 'SearchMarkUI.html'}, 
+            function(newTab) {});
+    });
+
+chrome.extension.onRequest.addListener(
+    function(request, sender, callback)
+    {
+        if (request.method == 'search') {
+            var keywordArray = request.keywords.split(" ");
+
+            gSearchRegex = new RegExp('(' + keywordArray.join("|") + ')', 'i');
+
+            gPort = chrome.extension.connect( {
+                name : "uiToBackend"
+            });
+
+            console.log(request.keywords);
+
+            searchBookmarkedPages("'" + request.keywords + "'");
+
+            callback('');
+        } else {
+            callback('');
+        }
     });
 
   chrome.bookmarks.onChanged.addListener(function(id, changeInfo)
