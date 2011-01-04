@@ -41,62 +41,16 @@ SearchMarkDB.open = function()
         openDatabase('SearchMarkDB', '1.0', 'Bookmark Page Storage', dbSize);
 }
 
-  // Error and success callbacks
-  SearchMarkDB.onErrorCb = function(tx, e)
-  {
+// Error and success callbacks
+SearchMarkDB.onErrorCb = function(tx, e)
+{
     console.log(e.message);
-  }
-
-  SearchMarkDB.onCreateErrorCb = function(tx, e)
-  {
-    console.log("Create error: " + e.message);
-  }
-
-  SearchMarkDB.onAddCb = function(tx, r)
-  {
-    console.log("Done adding bookmark.");
-  }
-
-  SearchMarkDB.onRemoveCb = function(tx, r)
-  {
-    console.log("Done removing bookmark.");
-  }
-
-  SearchMarkDB.onUpdateCb = function(tx, r)
-  {
-    console.log("Done updating bookmark");
-  }
-
-  SearchMarkDB.onClearCb = function(tx, r)
-  {
-    console.log("Cleared SearchMark database.");
-  }
-
-  SearchMarkDB.onDeleteCb = function(tx, r)
-  {
-    console.log("Deleted SearchMark database table 'pages'.");
-  }
-
-  SearchMarkDB.onCreateTableCb = function(tx, r)
-  {
-    console.log("Created SearchMark database table.");
-    localStorage['initialized'] = "yes";
-    populateDb();
-  }
-
-  // special callback to print all the bookmark
-  // URLs once they are retrieved from the database.
-  SearchMarkDB.showAllBookmarksCb = function(tx, r)
-  {
-    for ( var i = 0; i < r.rows.length; i++) {
-      console.log("Stored. " + r.rows.item(i).url);
-    }
-  }
+}
 
 // create the table that stores all the bookmark
 // info, including the associated pages.
 SearchMarkDB.createTable =
-    function()
+    function() 
 {
     SearchMarkDB.db.transaction(
         function(tx)
@@ -137,101 +91,111 @@ SearchMarkDB.createTable =
           });
       }
 
-  // remove a bookmarked page from the database
-  SearchMarkDB.removeBookmarkedPage =
-      function(theId)
-      {
-        SearchMarkDB.db.transaction(function(tx)
+// remove a bookmarked page from the database
+SearchMarkDB.removeBookmarkedPage =
+    function(theId)
+{
+    SearchMarkDB.db.transaction(
+        function(tx)
         {
-          tx.executeSql('DELETE FROM pages WHERE id=?', [ theId ], getCallback(
-            "remove page",
-            theId,
-            1), getCallback("remove page", theId, 0));
+            tx.executeSql('DELETE FROM pages WHERE id=?', [ theId ], 
+                          getCallback("remove page", theId, 1), 
+                          getCallback("remove page", theId, 0));
+
+            tx.executeSql('DELETE FROM rawpages WHERE id=?', [ theId ], 
+                          getCallback("remove page", "raw " + theId, 1), 
+                          getCallback("remove page", "raw " + theId, 0));
         });
-      }
+}
 
-  // update an already stored bookmarked page
-  SearchMarkDB.updateBookmarkedPage =
-      function(theId, theUrl, theTitle, thePlainPage, theHtmlPage)
-      {
-        SearchMarkDB.db
-            .transaction(function(tx)
-            {
-              tx
-                  .executeSql(
-                    'UPDATE pages SET url=?, ' + 'title=?, page=?, htmlpage=? ' + 'WHERE id=?',
-                    [ theUrl, theTitle, thePlainPage, theHtmlPage, theId ],
-                    SearchMarkDB.onUpdateCb,
-                    SearchMarkDB.onErrorCb);
-            });
-      }
-
-  // get all bookmark URLs. Callback function can
-  // be provided use the results as necessary.
-  SearchMarkDB.getStoredBookmarks =
-      function(callback)
-      {
-        SearchMarkDB.db.transaction(function(tx)
+// update an already stored bookmarked page
+SearchMarkDB.updateBookmarkedPage =
+    function(theId, theUrl, theTitle, thePlainPage, theHtmlPage)
+{
+    SearchMarkDB.db.transaction(
+        function(tx)
         {
-          tx.executeSql(
-            'SELECT id,url,title FROM pages',
-            [],
-            callback,
-            SearchMarkDB.onErrorCb);
+            tx.executeSql('UPDATE pages SET url=?, ' + 
+                          'title=?, page=? WHERE id=?',
+                          [ theUrl, theTitle, thePlainPage, theId ],
+                          getCallback("update bookmark", theUrl, 1),
+                          getCallback("update bookmark", theUrl, 0));
+
+            tx.executeSql('UPDATE rawpages SET htmlpage=? WHERE id=?',
+                          [ theHtmlPage, theId ],
+                          getCallback("update bookmark", "raw " + theUrl, 1),
+                          getCallback("update bookmark", "raw " + theUrl, 0));
         });
-      }
+}
 
-  SearchMarkDB.doSearch =
-      function(callback, keywords)
-      {
-        SearchMarkDB.db
-            .transaction(function(tx)
-            {
-              tx
-                  .executeSql(
-                    'SELECT id,url,title,snippet(pages) as snippet ' + 'FROM pages WHERE ' + 'pages MATCH ' + keywords,
-                    [],
-                    callback,
-                    SearchMarkDB.onErrorCb);
-            });
-      }
-
-  // clear all stored information.
-  SearchMarkDB.clear =
-      function()
-      {
-        SearchMarkDB.db.transaction(function(tx)
+// get all bookmark URLs. Callback function can
+// be provided use the results as necessary.
+SearchMarkDB.getStoredBookmarks =
+    function()
+{
+    SearchMarkDB.db.transaction(
+        function(tx)
         {
-          tx.executeSql('DELETE FROM pages', [], getCallback(
-            "clear table",
-            "pages",
-            1), getCallback("clear table", "pages", 0));
+            tx.executeSql('SELECT id,url,title FROM pages',
+                          [],
+                          getCallback("show db", "pages", 1),
+                          getCallback("show db", "pages", 0));
 
-          tx.executeSql('DELETE FROM rawpages', [], getCallback(
-            "clear table",
-            "rawpages",
-            1), getCallback("clear table", "rawpages", 0));
-
+            tx.executeSql('SELECT id FROM rawpages',
+                          [],
+                          getCallback("show db", "raw", 1),
+                          getCallback("show db", "raw", 0));
         });
-      }
+}
 
-  // remove the table and all stored information
-  SearchMarkDB.purge =
-      function()
-      {
-        SearchMarkDB.db.transaction(function(tx)
+SearchMarkDB.doSearch =
+    function(callback, keywords)
+{
+    SearchMarkDB.db.transaction(
+        function(tx)
         {
-          tx.executeSql('DROP TABLE pages', [], getCallback(
-            "delete table",
-            "pages",
-            1), getCallback("delete table", "pages", 0));
-
-          tx.executeSql('DROP TABLE rawpages', [], getCallback(
-            "delete table",
-            "rawpages",
-            1), getCallback("delete table", "rawpages", 0));
+            tx.executeSql('SELECT id,url,title,snippet(pages) ' + 
+                          'as snippet FROM pages WHERE ' + 
+                          'pages MATCH ' + keywords,
+                          [],
+                          callback,
+                          getCallback("search", "pages", 0));
         });
-      }
+}
+
+// clear all stored information.
+SearchMarkDB.clear =
+    function()
+{
+    SearchMarkDB.db.transaction(
+        function(tx)
+        {
+            tx.executeSql('DELETE FROM pages', [], 
+                          getCallback("clear table", "pages", 1), 
+                          getCallback("clear table", "pages", 0));
+
+            tx.executeSql('DELETE FROM rawpages', [], 
+                          getCallback("clear table", "rawpages", 1), 
+                          getCallback("clear table", "rawpages", 0));
+        });
+}
+
+// remove the table and all stored information
+SearchMarkDB.purge =
+    function()
+{
+    SearchMarkDB.db.transaction(
+        function(tx)
+        {
+          tx.executeSql('DROP TABLE pages', [], 
+                        getCallback("delete table", "pages", 1), 
+                        getCallback("delete table", "pages", 0));
+
+          tx.executeSql('DROP TABLE rawpages', [], 
+                        getCallback("delete table", "rawpages", 1), 
+                        getCallback("delete table", "rawpages", 0));
+        });
+}
 
 // ================== INIT ===============
 
@@ -239,7 +203,7 @@ SearchMarkDB.createTable =
 SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
-// SearchMarkDB.getStoredBookmarks(SearchMarkDB.showAllBookmarksCb);
+// SearchMarkDB.getStoredBookmarks();
 // SearchMarkDB.clear();
 // SearchMarkDB.purge();
 // localStorage['initialized'] = "no";
@@ -446,6 +410,21 @@ function initBookmarkDatabase(bookmarks)
 function getCallback(cbname, msg, type)
 {
     switch (cbname) {
+    case "show db":
+        if (type == 1)
+            return function(tx, r)
+        {
+            for ( var i = 0; i < r.rows.length; i++) {
+                console.log("Stored. " + msg + " " + r.rows.item(i).url);
+            }
+        }
+        else
+            return function(tx, r)
+        {
+            console.debug("failed: " + cbname + " " + msg);
+            console.log("  " + e.message);
+        }            
+        break;
     default:
         if (type == 1) // success callback
             return function(tx, e)
