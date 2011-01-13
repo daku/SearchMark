@@ -30,6 +30,10 @@ var gRemainingSearch = 0;
 // Communicate with extension UI
 var gPort;
 
+// Used to highlight searched keywords in results
+var uiHighlightStart = '<span class=ContentTextHighLight>';
+var uiHighlightEnd = '</span>';
+
 // ======================== DATABASE API ==================
 
 // Open the database
@@ -64,26 +68,32 @@ SearchMarkDB.createTable =
         });
 }
 
-  // add a bookmark and associated page to the database
-  SearchMarkDB.addBookmarkedPage =
-      function(newId, newUrl, newTitle, newPlainPage, newHtmlPage)
-      {
-        SearchMarkDB.db.transaction(function(tx)
+// add a bookmark and associated page to the database
+SearchMarkDB.addBookmarkedPage =
+    function(newId, newUrl, newTitle, newPlainPage, newHtmlPage)
+{
+    SearchMarkDB.db.transaction(
+        function(tx)
         {
-          // html-free page for searching
-            tx.executeSql(
-              'INSERT INTO pages(id, url, title, ' + 'page) ' + 'VALUES (?,?,?,?)',
-              [ newId, newUrl, newTitle, newPlainPage ],
-              getCallback("insert page", newId + " " + newUrl, 1),
-              getCallback("insert page", newId + " " + newUrl, 0));
+            // html-free page for searching
+            tx.executeSql('INSERT INTO pages(id, url, title, ' + 'page) ' + 
+                          'VALUES (?,?,?,?)',
+                          [ newId, newUrl, newTitle, newPlainPage ],
+                          getCallback("insert page", newId + " " +
+                                      newUrl, 1), 
+                          getCallback("insert page", newId + " " +
+                                      newUrl, 0)); 
 
             // html page for showing cached version
-            tx.executeSql('INSERT INTO rawpages(id, htmlpage) ' + 'VALUES (?,?)', [
-                newId, newHtmlPage ], getCallback("insert page", "raw " + newId
-                + " " + newUrl, 1), getCallback("insert page", "raw " + newId + " "
-                + newUrl, 0));
-          });
-      }
+            tx.executeSql('INSERT INTO rawpages(id, htmlpage) ' +
+                          'VALUES (?,?)', 
+                          [newId, newHtmlPage ], 
+                          getCallback("insert page", "raw " + newId +
+                                      " " + newUrl, 1),  
+                          getCallback("insert page", "raw " + newId +
+                                      " " + newUrl, 0)); 
+        });
+}
 
 // remove a bookmarked page from the database
 SearchMarkDB.removeBookmarkedPage =
@@ -148,7 +158,9 @@ SearchMarkDB.doSearch =
     SearchMarkDB.db.transaction(
         function(tx)
         {
-            tx.executeSql('SELECT id,url,title,snippet(pages) ' + 
+            tx.executeSql('SELECT id,url,title, ' + 
+                          'snippet(pages, "' + uiHighlightStart +
+                          '", "' + uiHighlightEnd + '") ' +
                           'as snippet FROM pages WHERE ' + 
                           'pages MATCH ' + keywords,
                           [],
@@ -229,21 +241,7 @@ chrome.browserAction.onClicked.addListener(
             function(newTab) {});
     });
 
-chrome.extension.onRequest.addListener(
-    function(request, sender, callback)
-    {
-        if (request.method == 'search') {
-            gPort = chrome.extension.connect( {name : "uiToBackend"});
-
-            console.log(request.keywords);
-
-            searchBookmarkedPages("'" + request.keywords + "'");
-
-            callback('');
-        } else {
-            callback('');
-        }
-    });
+chrome.extension.onRequest.addListener(handleRequest);
 
 chrome.bookmarks.onChanged.addListener(
     function(id, changeInfo)
@@ -280,7 +278,29 @@ chrome.bookmarks.onRemoved.addListener(
         SearchMarkDB.removeBookmarkedPage(id);
     });
 
+// experimental APIs require user start chrome with a specific option
+// flag from the command line. So, not using for now.
+// chrome.experimental.omnibox.onInputEntered.addListener(
+//     function(keywords) {
+//         handleRequest({method: 'search', keywords: keywords},
+//                       background, function() {});
+//     }
+// );
+
 // ================= CORE API ===================
+
+function handleRequest(request, sender, callback)
+{
+    if (request.method == 'search') {
+        gPort = chrome.extension.connect( {name : "uiToBackend"});
+
+        searchBookmarkedPages("'" + request.keywords + "'");
+
+        callback();
+    } else {
+        callback();
+    }
+}
 
 function informUIResultsDone()
 {
@@ -360,18 +380,16 @@ function getAndStoreBookmarkContent(bookmark, storeInDB)
                     var pageNoHtml = removeHTMLfromPage(this.responseText);
 
                     // add page to database
-                    storeInDB(
-                        bookmark.id,
-                        bookmark.url,
-                        bookmark.title,
-                        pageNoHtml,
-                        this.responseText);
+                    storeInDB(bookmark.id, bookmark.url,
+                              bookmark.title, pageNoHtml,
+                              this.responseText);
 
                     this.abort();
                 }
             } catch (e) {
                 console.log(e.message);
-                storeInDB(bookmark.id, bookmark.url, bookmark.title, "", "");
+                storeInDB(bookmark.id, bookmark.url, bookmark.title,
+                          "", "");
             }
         }
 
@@ -391,7 +409,8 @@ function initBookmarkDatabase(bookmarks)
                 bookmark.url.match("^https?://*")) 
             { // url exists and is well formed
                 console.debug("Adding " + bookmark.url);
-                getAndStoreBookmarkContent(bookmark, SearchMarkDB.addBookmarkedPage);
+                getAndStoreBookmarkContent(bookmark,
+                                           SearchMarkDB.addBookmarkedPage);
             } else {
                 console.debug("Skipping. " + bookmark.url);
             }
@@ -409,7 +428,8 @@ function getCallback(cbname, msg, type)
             return function(tx, r)
         {
             for ( var i = 0; i < r.rows.length; i++) {
-                console.log("Stored. " + msg + " " + r.rows.item(i).url);
+                console.log("Stored. " + msg + " " +
+                            r.rows.item(i).url);
             }
         }
         else
