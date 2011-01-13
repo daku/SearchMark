@@ -152,6 +152,21 @@ SearchMarkDB.getStoredBookmarks =
         });
 }
 
+// Supports the cached page feature. Returns cached raw html page.
+SearchMarkDB.getRawHtmlPage = 
+    function (id, callback)
+{
+    SearchMarkDB.db.transaction(
+        function(tx)
+        {
+            tx.executeSql('SELECT htmlpage FROM rawpages ' +
+                          'WHERE id = ?',
+                          [id],
+                          callback,
+                          getCallback("get page", "raw", 0));
+        });
+}
+
 SearchMarkDB.doSearch =
     function(callback, keywords)
 {
@@ -278,7 +293,7 @@ chrome.bookmarks.onRemoved.addListener(
         SearchMarkDB.removeBookmarkedPage(id);
     });
 
-// experimental APIs require user start chrome with a specific option
+// experimental APIs require user to start chrome with a specific option
 // flag from the command line. So, not using for now.
 // chrome.experimental.omnibox.onInputEntered.addListener(
 //     function(keywords) {
@@ -294,15 +309,45 @@ function handleRequest(request, sender, callback)
     if (request.method == 'search') {
         gPort = chrome.extension.connect( {name : "uiToBackend"});
 
-        searchBookmarkedPages("'" + request.keywords + "'");
+        console.debug("search " + request.keywords);
 
+        searchBookmarkedPages("'" + request.keywords + "'");
+        
         callback();
     } else if (request.method == 'cached') {
-        console.log(request.bookmarkid);
+        SearchMarkDB.getRawHtmlPage(request.bookmarkid, displayRawPage);
+
+        console.debug("cache request " + request.bookmarkid);
 
         callback();
     } else {
         callback();
+    }
+}
+
+function displayRawPage(tx, r)
+{
+    if(r.rows.length) {
+
+        chrome.tabs.create(
+            {url: 'rawPageView.html', selected: true}, 
+            function (tab)
+            {
+                // connect to tab that will show the raw page
+                var port = chrome.extension.connect({name:
+                "rawPageView"});
+                
+                // send the raw page
+                port.postMessage(r.rows.item(0).htmlpage);
+
+                // done.
+                port.disconnect();
+            });
+
+    } else {
+        console.log("Unexpected error: this page should have " + 
+                    "been cached. Please file a bug report " + 
+                    "at <todo:put github url here>");
     }
 }
 
@@ -446,7 +491,7 @@ function getCallback(cbname, msg, type)
         break;
     default:
         if (type == 1) // success callback
-            return function(tx, e)
+            return function(tx, r)
         {
             console.debug("succeded: " + cbname + " " + msg);
         }

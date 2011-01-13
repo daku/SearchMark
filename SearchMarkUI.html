@@ -18,22 +18,18 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-
+//
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
+
+// About:
 // Initialize communication channel between backend and UI.
 // No UI code should be added here. Change only if ABSOLUTELY 
 // necessary.
 //
 
 function init() {
-    // When background page connects to UI to send back
-    // results, the added listner code will execute and 
-    // register a callback function with the communication 
-    // port. The callback will be called each time a message 
-    // is received on that port. Each message constitutes a 
-    // single result to be displayed. See processSearchResult().
+    // Listen for search results from backend
     chrome.extension.onConnect.addListener(function(port) {
         if(port.name != "uiToBackend") {
             console.log("Invalid port name: " + port.name);
@@ -188,7 +184,6 @@ function secondLayout(){
     containerID.appendChild(mainContent);
     containerID.appendChild(footerContent);    
 }
-
 </script>
 </head>
 <body class="oneColLiqCtrHdr" onLoad="init()">
