@@ -49,6 +49,13 @@ function init() {
    document.searchForm.elements['searchBox'].focus();
 }
 
+// Send request to backend for displaying a cached bookmark page
+function requestCachedPage(id) {
+    chrome.extension.sendRequest(
+        {method: 'cached', bookmarkid: id}, 
+        function() {});
+}
+
 // Take keywords from text box and send to
 // backend for searching.
 function startSearch() {
@@ -93,8 +100,8 @@ function processSearchResult(result) {
         resultString += '<span class="ContentURL"><a class="ContentURL" href="' +
         result.url + '">' + result.url + '</a></span>';
 
-        resultString += '<input type="button" onclick="alert('
-            + result.id + ');" value="Cached"/>';
+        resultString += '<input type="button" onclick="requestCachedPage('
+            + result.id + ');" value="Stored Version"/>';
     }
 
     p = document.createElement("p");

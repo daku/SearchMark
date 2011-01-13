@@ -297,6 +297,10 @@ function handleRequest(request, sender, callback)
         searchBookmarkedPages("'" + request.keywords + "'");
 
         callback();
+    } else if (request.method == 'cached') {
+        console.log(request.bookmarkid);
+
+        callback();
     } else {
         callback();
     }
