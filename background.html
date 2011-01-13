@@ -322,6 +322,7 @@ function searchBookmarkedPagesCb(tx, r)
     var result = {};
 
     for ( var i = 0; i < r.rows.length; i++) {
+        result.id = r.rows.item(i).id;
         result.url = r.rows.item(i).url;
         result.title = r.rows.item(i).title;
         result.text = r.rows.item(i).snippet;

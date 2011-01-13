@@ -92,6 +92,9 @@ function processSearchResult(result) {
 
         resultString += '<span class="ContentURL"><a class="ContentURL" href="' +
         result.url + '">' + result.url + '</a></span>';
+
+        resultString += '<input type="button" onclick="alert('
+            + result.id + ');" value="Cached"/>';
     }
 
     p = document.createElement("p");
