@@ -3,7 +3,6 @@ body
   font-family: "Myriad Pro", Verdana, Arial, Helvetica, sans-serif;
   }
 
-/* Gradient 1 */
 .searchbox 
 {
   border:1px solid #d1c7ac;
@@ -36,4 +35,23 @@ body
   font-weight:bold;
   border-style:outset;
   background-color:#dddddd;
+  }
+
+#container
+{
+  float:left;
+  height:50%;
+  margin-bottom:-1.5in;
+/*   border: 1px solid #666; */
+  }
+
+#content
+{
+  clear:both;
+  position:relative;
+  height: 1.5in;
+  width: 5in;
+/*   border: 1px solid #666; */
+  margin: auto;
+  text-align: center;
   }

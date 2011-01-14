@@ -1,9 +1,14 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>SearchMark</title>
+
+<title>Search Bookmarked Pages</title>
+
 <link rel="shortcut icon" href="logo.png"> 
-<link href="style.css" rel="stylesheet" type="text/css">
+<link rel="stylesheet" type="text/css" href="style.css"/>
+
+<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+
 <script language="Javascript">
 // SearchMarkUI.html: SearchMark front-end
 //
@@ -55,14 +60,7 @@ function requestCachedPage(id) {
 // Take keywords from text box and send to
 // backend for searching.
 function startSearch() {
-    searchkey = document.searchForm.searchBox.value;
-
-    containerID = document.getElementById("container");
-    while(containerID.firstChild){
-        containerID.removeChild(containerID.firstChild);
-    }
-
-    secondLayout();
+    searchkey = $('#searchbox').value;
 
     chrome.extension.sendRequest(
         {method: 'search', keywords: searchkey}, 
@@ -107,92 +105,32 @@ function processSearchResult(result) {
     searchResultID.appendChild(p);
     //document.body.appendChild(p);
 }
-//the first page layout
-function firstLayout(){
-    containerID = document.getElementById("container");
-    headerContent = document.createElement("div");
-    headerContent.setAttribute('id','header');
-    hString = '<h1 align="center">&nbsp;</h1>';
-    headerContent.innerHTML = hString;
 
-    mainContent = document.createElement("div");
-    mainContent.setAttribute('id','mainContent');
-    mString = '<div align="center">'+
-               '<h1><img src="logoLarge.png" alt="sm" width="39" height="39" align="absbottom"> SearchMark'+ 
-	       '</h1>'+
-               '<p>'+
-		 '<input name="searchBox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById(\'searchButton\').click()"/>'+
-		 '<img src="space.png" width="7" height="1">'+
-		 '<input type="button" id="searchButton" value="Search" onclick="startSearch();" />'+
-               '</p>'+
-               '<p>&nbsp;</p>'+
-               '<p>&nbsp;</p>'+
-	     '</div>'+
-	     '<h2>&nbsp;</h2>';
-    mainContent.innerHTML = mString;
-
-    footerContent = document.createElement("div");
-    footerContent.setAttribute('id','footer');
-    fString = '<p align="right" class="SmallText">Gnu General Public License Version 3 &copy; 2010 SearchMark</p>';
-    footerContent.innerHTML = fString;
-
-    containerID.appendChild(headerContent);
-    containerID.appendChild(mainContent);
-    containerID.appendChild(footerContent); 
-}
-
-//layout when it shows the result
-function secondLayout(){
-    containerID = document.getElementById("container");
-    headerContent = document.createElement("div");
-    headerContent.setAttribute('id','header');
-    hString = '<h1 align="center">'+
-          '<img src="logoLarge.png" alt="sm" width="39" height="39" align="absbottom"> SearchMark'+ 
-          '<img src="space.png" width="7" height="1">'+      
-          '<input name="searchBox" type="text" size="50" id="searchBox" onkeydown="if (event.keyCode == 13) document.getElementById(\'searchButton\').click()"/>'+
-          '<img src="space.png" width="7" height="1">'+
-	  '<input type="button" id="searchButton" value="Search" onclick="startSearch();" />'+
-	'</h1>';
-    headerContent.innerHTML = hString;
-
-    mainContent = document.createElement("div");
-    mainContent.setAttribute('id','mainContent');
-
-    mString = '<div id="searchResult">'+
-              '<!--search result display here-->'+
-              '</div>';
-    /*
-    mString = '<table width="100%" border="0" cellspacing="10" cellpadding="0">'+
-	  '<tr>'+
-	    '<td width="99%" id="searchResult">'+
-	      '<!--search result display here-->'+
-	    '</td>'+
-	    '<td width="1%" valign="top">'+
-	      '<p>&nbsp;</p>'+
-	    '</td>'+
-	  '</tr>'+
-	'</table>';
-    */
-    mainContent.innerHTML = mString;
-
-    footerContent = document.createElement("div");
-    footerContent.setAttribute('id','footer');
-    fString = '<p align="right" class="SmallText">Gnu General Public License Version 3 &copy; 2010 SearchMark</p>';
-    footerContent.innerHTML = fString;
-
-    containerID.appendChild(headerContent);
-    containerID.appendChild(mainContent);
-    containerID.appendChild(footerContent);    
-}
 </script>
 </head>
-<body class="oneColLiqCtrHdr" onLoad="init()">
-  <form name="searchForm">
-    <div id="container">
-      
+<body onLoad="init()">
+    
+  <!-- Moves content vertically down to the center-->
+<div id="floater"></div>
 
-      <!-- end #container --></div>
-  </form>
+<div id="welcomesearchui">
+
+  <!-- logo image -->
+  <img src="images/hand-written-name.png" alt="SearchMark Logo and
+                                               Name"/>
+  <!-- spacing -->
+  <p>&nbsp;
+
+  <!-- search box -->
+  <input type="text" id="searchbox" class="searchbox"/>
+
+  <!-- search button -->
+  <button type="button" id="searchbutton" class="searchbutton"
+  onmousedown="$('#searchbutton').addClass('searchbuttonpressed')"
+  onmouseup="$('#searchbutton').removeClass('searchbuttonpressed')">Search</button>
+
+</div>
+
 </body>
 </html>
 
