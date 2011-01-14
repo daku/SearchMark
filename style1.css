@@ -1,0 +1,39 @@
+body 
+{
+  font-family: "Myriad Pro", Verdana, Arial, Helvetica, sans-serif;
+  }
+
+/* Gradient 1 */
+.searchbox 
+{
+  border:1px solid #d1c7ac;
+  width: 230px;
+  color:#333333;
+  padding:3px;
+  margin-right:4px;
+  margin-bottom:8px;
+  }
+
+.searchbutton 
+{ 
+  border:1px solid #d1c7ac;
+  color:#444444;
+  padding:3px;
+  margin-right:4px;
+  margin-bottom:8px;
+  font-weight:bold;
+  border-style:outset;
+  background-color:#eeeeee;
+  }
+
+.searchbuttonpressed
+{ 
+  border:1px solid #d1c7ac;
+  color:#444444;
+  padding:3px;
+  margin-right:4px;
+  margin-bottom:8px;
+  font-weight:bold;
+  border-style:outset;
+  background-color:#dddddd;
+  }

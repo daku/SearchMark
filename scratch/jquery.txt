@@ -1,0 +1,18 @@
+<link type="text/css"
+href="third-party/css/smoothness/jquery-ui-1.8.7.custom.css"
+rel="Stylesheet" />
+
+<script type="text/javascript"
+src="third-party/js/jquery-1.4.4.min.js"></script> 
+
+<script type="text/javascript"
+src="third-party/js/jquery-ui-1.8.7.custom.min.js"></script> 
+
+<script type="text/javascript">
+    $(document).ready(
+        function(){
+            $(function() {
+		        $( "#dialog" ).dialog();
+	        });
+        });
+</script>
