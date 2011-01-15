@@ -61,11 +61,42 @@ function requestCachedPage(id) {
 // Take keywords from text box and send to
 // backend for searching.
 function startSearch() {
-    searchkey = $('#searchbox').value;
+    searchwords = $('#searchbox').val();
 
-    chrome.extension.sendRequest(
-        {method: 'search', keywords: searchkey}, 
-        function() {});
+    $('div').fadeOut(
+        'fast',
+        function ()
+        {
+            $('div').remove();
+            displayResultsPage();
+            chrome.extension.sendRequest(
+                {method: 'search', keywords: searchwords}, 
+                function() {});
+        });
+}
+
+var searchbtnid = "'#searchbutton'";
+var searchbtneffect = "'searchbuttonpressed'";
+var results_page_top_html = 
+    '<div id="topsearch">' +
+    '<table><tr>' +
+    '<th id = "thlogo"><img src="images/hand-written-name-results.png"/></th>' +
+    '<!-- search box -->' +
+    '<th id = "thsearchbox"><input type="text" id="searchbox"' +
+    'class="searchbox"/>' +
+    '<!-- search button -->' +
+    '<button type="button" id="searchbutton" class="searchbutton"' +
+    'onmousedown="$(' + searchbtnid + ').addClass(' + searchbtneffect
+    + ')"' + 
+    'onmouseup="$(' + searchbtnid + ').removeClass('+ 
+    searchbtneffect + ');startSearch()">Search</button></th>' + 
+    '</tr></table>' +
+    '</div>';
+ 
+function displayResultsPage()
+{
+    $('body').append(results_page_top_html);
+    $('body').append('<div id="results"></div>');
 }
 
 // Each search result will be delivered here.
@@ -81,30 +112,18 @@ function startSearch() {
 //     textual context.
 function processSearchResult(result) {
     if(result.matchType == "DONE") {
-        resultString = "Search done.";
-        document.searchForm.elements['searchBox'].focus();
+        resultString = "&nbsp;";
+        $('#searchbox').focus();
     } else {
         resultString = 
-        '<span class="ContentTitle">' + result.title +'</span>'
-        + '<img src="space.png" width="15" height="1" id="space">'
-        + '<br/>';
-        if(result.text != ""){
-            resultString += '<span class="ContentText">' + result.text + '</span><br/>';
-        }
-
-        resultString += '<span class="ContentURL"><a class="ContentURL" href="' +
-        result.url + '">' + result.url + '</a></span>';
-
-        resultString += '<input type="button" onclick="requestCachedPage('
-            + result.id + ');" value="Stored Version"/>';
+            '<a href="' + result.url + '">' + result.title +'</a>' +
+            '<p>' + result.text + '<br/>' +
+            '<span class="urltext">' + result.url + '</span>&nbsp;' +
+            '(<a href="#" onclick="requestCachedPage(' + result.id +
+            ');">Stored Version</a>)<p>';
     }
 
-    p = document.createElement("p");
-    p.innerHTML = resultString;
-
-    searchResultID = document.getElementById("searchResult");
-    searchResultID.appendChild(p);
-    //document.body.appendChild(p);
+    $('#results').append(resultString);
 }
 
 </script>
@@ -129,7 +148,7 @@ function processSearchResult(result) {
   <!-- search button -->
   <button type="button" id="searchbutton" class="searchbutton"
   onmousedown="$('#searchbutton').addClass('searchbuttonpressed')"
-  onmouseup="$('#searchbutton').removeClass('searchbuttonpressed')">Search</button>
+  onmouseup="$('#searchbutton').removeClass('searchbuttonpressed');startSearch()">Search</button>
 
 </div>
 

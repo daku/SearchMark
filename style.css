@@ -1,6 +1,8 @@
 body 
 {
   font-family: "Myriad Pro", Verdana, Arial, Helvetica, sans-serif;
+  margin: 0px;
+  padding: 0px;
   }
 
 .searchbox 
@@ -37,21 +39,57 @@ body
   background-color:#dddddd;
   }
 
+table
+{ 
+  width:100%;
+  }
+
+#thlogo
+{
+  text-align: right;
+  vertical-align: center;
+  }
+
+#thsearchbox
+{ 
+  text-align: left;
+  vertical-align: center;
+  padding-top: 15px;
+  padding-left: 15px;
+  }
+
 #floater
 {
   float:left;
   height:50%;
-  margin-bottom:-1.5in;
-/*   border: 1px solid #666; */
+  margin-bottom:-2in;
   }
 
 #welcomesearchui
 {
   clear:both;
   position:relative;
-  height: 1.5in;
-  width: 5in;
-/*   border: 1px solid #666; */
+  height: 4in;
+  width: 6in;
   margin: auto;
   text-align: center;
+  background: url("images/welcomebg.png") center center no-repeat
+  fixed;
+  padding-top: 80px;
+  padding-right: 15px;
+  }
+
+#topsearch
+{ 
+  height:1in;
+  background: url("images/topsearchbg.png") top left repeat-x;
+  margin: 0px;
+  padding: 0px;
+  text-align: center;
+  }
+
+#results
+{ 
+  margin: auto;
+  padding: 0px;
   }
