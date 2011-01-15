@@ -49,6 +49,11 @@ $(document).ready(
         });
         
         $('#searchbox').focus();
+        $('#searchbox').keyup(function(e) {
+	        if(e.keyCode == 13) {
+		        leavePage('#welcomepage');
+	        }
+        });
     });
 
 // Send request to backend for displaying a cached bookmark page
@@ -58,29 +63,13 @@ function requestCachedPage(id) {
         function() {});
 }
 
-// Take keywords from text box and send to
-// backend for searching.
-function startSearch() {
-    searchwords = $('#searchbox').val();
-
-    $('div').fadeOut(
-        'fast',
-        function ()
-        {
-            $('div').remove();
-            displayResultsPage();
-            chrome.extension.sendRequest(
-                {method: 'search', keywords: searchwords}, 
-                function() {});
-        });
-}
-
 var searchbtnid = "'#searchbutton'";
 var searchbtneffect = "'searchbuttonpressed'";
+var resultspagename = "'#resultspage'";
 var results_page_top_html = 
     '<div id="topsearch">' +
     '<table><tr>' +
-    '<th id = "thlogo"><img src="images/hand-written-name-results.png"/></th>' +
+    '<th id = "thlogo"><img src="images/logotext-results.png"/></th>' +
     '<!-- search box -->' +
     '<th id = "thsearchbox"><input type="text" id="searchbox"' +
     'class="searchbox"/>' +
@@ -89,14 +78,33 @@ var results_page_top_html =
     'onmousedown="$(' + searchbtnid + ').addClass(' + searchbtneffect
     + ')"' + 
     'onmouseup="$(' + searchbtnid + ').removeClass('+ 
-    searchbtneffect + ');startSearch()">Search</button></th>' + 
+    searchbtneffect + ');leavePage(' + resultspagename + ')">Search</button></th>' + 
     '</tr></table>' +
     '</div>';
- 
-function displayResultsPage()
-{
-    $('body').append(results_page_top_html);
-    $('body').append('<div id="results"></div>');
+
+// Take keywords from text box and send to
+// backend for searching.
+function doSearch(searchwords) {
+
+    $('body').append('<div id = "resultspage"></div>');
+    $('#resultspage').append(results_page_top_html);
+    $('#resultspage').append('<div id="resultspagebtm"></div>');
+
+    chrome.extension.sendRequest(
+        {method: 'search', keywords: searchwords}, 
+        function() {});
+}
+
+function leavePage(pagename) {
+    
+    $(pagename).fadeOut(
+        'fast',
+        function ()
+        {
+            var searchwords = $('#searchbox').val();
+            $(pagename).remove();
+            doSearch(searchwords);
+        });
 }
 
 // Each search result will be delivered here.
@@ -113,42 +121,45 @@ function displayResultsPage()
 function processSearchResult(result) {
     if(result.matchType == "DONE") {
         resultString = "&nbsp;";
+
         $('#searchbox').focus();
+        $('#searchbox').keyup(function(e) {
+	        if(e.keyCode == 13) {
+		        leavePage('#resultspage');
+	        }
+        });
+
     } else {
         resultString = 
-            '<a href="' + result.url + '">' + result.title +'</a>' +
-            '<p>' + result.text + '<br/>' +
-            '<span class="urltext">' + result.url + '</span>&nbsp;' +
-            '(<a href="#" onclick="requestCachedPage(' + result.id +
-            ');">Stored Version</a>)<p>';
+            '<a href="' + result.url + '" target="_blank">' + result.title +'</a>' +
+            '<br/>' + result.text + '<br/>' +
+            '<span class="resulturl">' + result.url + '</span>&nbsp;' +
+            '<a href="#" class="resultactions" onclick="requestCachedPage(' + result.id +
+            ');">(Offline Version)</a><p><br/>';
     }
 
-    $('#results').append(resultString);
+    $('#resultspagebtm').append(resultString);
 }
 
 </script>
 </head>
 
 <body>
-    
-  <!-- Moves content vertically down to the center-->
-<div id="floater"></div>
 
-<div id="welcomesearchui">
+<div id="welcomepage">
 
-  <!-- logo image -->
-  <img src="images/hand-written-name.png" alt="SearchMark Logo and
-                                               Name"/>
-  <!-- spacing -->
-  <p>&nbsp;
+  <div id="floater"></div>
 
-  <!-- search box -->
-  <input type="text" id="searchbox" class="searchbox"/>
+  <div id="welcomesearchbox">
 
-  <!-- search button -->
-  <button type="button" id="searchbutton" class="searchbutton"
-  onmousedown="$('#searchbutton').addClass('searchbuttonpressed')"
-  onmouseup="$('#searchbutton').removeClass('searchbuttonpressed');startSearch()">Search</button>
+    <!-- search box -->
+    <input type="text" id="searchbox" class="searchbox"/>
+
+    <!-- search button -->
+    <button type="button" id="searchbutton" class="searchbutton"
+            onmousedown="$('#searchbutton').addClass('searchbuttonpressed')"
+            onmouseup="$('#searchbutton').removeClass('searchbuttonpressed');leavePage('#welcomepage')">Search</button>
+  </div>
 
 </div>
 

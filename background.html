@@ -24,15 +24,14 @@
 // Bookmarked page database
 var SearchMarkDB = {};
 
-// Status indicator variables
-var gRemainingSearch = 0;
-
 // Communicate with extension UI
 var gPort;
 
 // Used to highlight searched keywords in results
-var uiHighlightStart = '<span class=ContentTextHighLight>';
+var uiHighlightStart = '<span class=highlight>';
 var uiHighlightEnd = '</span>';
+var uiEllipses = '<b>...</b>';
+var uiContextLen = -30;
 
 // ======================== DATABASE API ==================
 
@@ -55,7 +54,7 @@ SearchMarkDB.createTable =
         {
             tx.executeSql('CREATE VIRTUAL TABLE pages ' + 
                           'USING fts3(id INTEGER PRIMARY KEY, ' + 
-                          'url TEXT, title TEXT, page TEXT)',
+                          'url TEXT, title TEXT, page TEXT, time INTEGER)',
                           [],
                           getCallback("create table", "pages", 1),
                           getCallback("create table", "pages", 0));
@@ -70,15 +69,16 @@ SearchMarkDB.createTable =
 
 // add a bookmark and associated page to the database
 SearchMarkDB.addBookmarkedPage =
-    function(newId, newUrl, newTitle, newPlainPage, newHtmlPage)
+    function(newId, newUrl, newTitle, newPlainPage, newTime, newHtmlPage)
 {
     SearchMarkDB.db.transaction(
         function(tx)
         {
             // html-free page for searching
-            tx.executeSql('INSERT INTO pages(id, url, title, ' + 'page) ' + 
-                          'VALUES (?,?,?,?)',
-                          [ newId, newUrl, newTitle, newPlainPage ],
+            tx.executeSql('INSERT INTO pages(id, url, title, page, ' +
+                          'time) VALUES (?,?,?,?,?)',
+                          [ newId, newUrl, newTitle, newPlainPage,
+                            newTime ],
                           getCallback("insert page", newId + " " +
                                       newUrl, 1), 
                           getCallback("insert page", newId + " " +
@@ -114,7 +114,8 @@ SearchMarkDB.removeBookmarkedPage =
 
 // update an already stored bookmarked page
 SearchMarkDB.updateBookmarkedPage =
-    function(theId, theUrl, theTitle, thePlainPage, theHtmlPage)
+    function(theId, theUrl, theTitle, thePlainPage, theTime,
+             theHtmlPage)
 {
     SearchMarkDB.db.transaction(
         function(tx)
@@ -175,9 +176,12 @@ SearchMarkDB.doSearch =
         {
             tx.executeSql('SELECT id,url,title, ' + 
                           'snippet(pages, "' + uiHighlightStart +
-                          '", "' + uiHighlightEnd + '") ' +
+                          '", "' + uiHighlightEnd + 
+                          '", "' + uiEllipses +
+                          '", -1, ' + uiContextLen + ') ' +
                           'as snippet FROM pages WHERE ' + 
-                          'pages MATCH ' + keywords,
+                          'pages MATCH ' + keywords + ' ' +
+                          'ORDER BY time DESC',
                           [],
                           callback,
                           getCallback("search", "pages", 0));
@@ -267,7 +271,8 @@ chrome.bookmarks.onChanged.addListener(
         getAndStoreBookmarkContent( 
             {id : id, 
              url : changeInfo.url,
-             title : changeInfo.title}, 
+             title : changeInfo.title,
+             time : 0},
             SearchMarkDB.updateBookmarkedPage);
     });
 
@@ -277,11 +282,12 @@ chrome.bookmarks.onCreated.addListener(
         if (localStorage['initialized'] != "yes")
             return;
 
-        getAndStoreBookmarkContent( {
-            id : id,
-            url : newBookmark.url,
-            title : newBookmark.title
-        }, SearchMarkDB.addBookmarkedPage);
+        getAndStoreBookmarkContent( 
+            {id : id,
+             url : newBookmark.url,
+             title : newBookmark.title,
+             time : newBookmark.dateAdded},
+            SearchMarkDB.addBookmarkedPage);
     });
 
 chrome.bookmarks.onRemoved.addListener(
@@ -311,7 +317,8 @@ function handleRequest(request, sender, callback)
 
         console.debug("search " + request.keywords);
 
-        searchBookmarkedPages("'" + request.keywords + "'");
+        SearchMarkDB.doSearch(searchBookmarkedPagesCb, 
+                              "'" + request.keywords + "'");
         
         callback();
     } else if (request.method == 'cached') {
@@ -351,23 +358,8 @@ function displayRawPage(tx, r)
     }
 }
 
-function informUIResultsDone()
-{
-    var result = {};
-
-    result.matchType = "DONE";
-
-    gPort.postMessage(result);
-
-    // cleanup
-    gRemainingSearch = 0;
-
-    gPort.disconnect();
-}
-
 function searchBookmarkedPagesCb(tx, r)
 {
-    gRemainingSearch = r.rows.length;
     var result = {};
 
     for ( var i = 0; i < r.rows.length; i++) {
@@ -379,12 +371,12 @@ function searchBookmarkedPagesCb(tx, r)
 
         gPort.postMessage(result);
 
-        gRemainingSearch--;
+        result = {};
     }
 
-    if (!gRemainingSearch) {
-        informUIResultsDone();
-    }
+    result.matchType = "DONE";
+
+    gPort.postMessage(result);
 }
 
 function removeHTMLfromPage(page)
@@ -412,11 +404,6 @@ function removeHTMLfromPage(page)
     return pagetxt;
 }
 
-function searchBookmarkedPages(keywords)
-{
-    SearchMarkDB.doSearch(searchBookmarkedPagesCb, keywords);
-}
-
 function getAndStoreBookmarkContent(bookmark, storeInDB)
 {
     try {
@@ -432,7 +419,7 @@ function getAndStoreBookmarkContent(bookmark, storeInDB)
                     // add page to database
                     storeInDB(bookmark.id, bookmark.url,
                               bookmark.title, pageNoHtml,
-                              this.responseText);
+                              bookmark.dateAdded, this.responseText);
 
                     this.abort();
                 }

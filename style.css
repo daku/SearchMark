@@ -62,21 +62,23 @@ table
 {
   float:left;
   height:50%;
-  margin-bottom:-2in;
   }
 
-#welcomesearchui
+#welcomesearchbox
+{ 
+  clear: both;
+  position: relative;
+  height: 1in;
+  padding-left: 30px;
+  }
+
+#welcomepage
 {
-  clear:both;
-  position:relative;
-  height: 4in;
-  width: 6in;
-  margin: auto;
+  height: 100%;
+  width: 100%;
   text-align: center;
-  background: url("images/welcomebg.png") center center no-repeat
-  fixed;
-  padding-top: 80px;
-  padding-right: 15px;
+  background: url("images/welcome-template.png") center
+  no-repeat fixed;
   }
 
 #topsearch
@@ -88,8 +90,27 @@ table
   text-align: center;
   }
 
-#results
+#resultspagebtm
 { 
   margin: auto;
-  padding: 0px;
+  padding-left: 20%;
+  padding-right: 20%;
+  }
+
+.resulturl
+{
+  font-size: small;
+  color: gray;
+  }
+
+.resultactions 
+{ 
+  font-size: small;
+  color: #358f39;
+  }
+
+.highlight
+{ 
+  background-color:yellow;
+  font-weight: bold;
   }
