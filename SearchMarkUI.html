@@ -33,22 +33,23 @@
 // necessary.
 //
 
-function init() {
-    // Listen for search results from backend
-    chrome.extension.onConnect.addListener(function(port) {
-        if(port.name != "uiToBackend") {
-            console.log("Invalid port name: " + port.name);
-            return;
-        }
-        
-        port.onMessage.addListener(function(result) {
-            processSearchResult(result);
+$(document).ready(
+    function() 
+    {
+        // Listen for search results from backend
+        chrome.extension.onConnect.addListener(function(port) {
+            if(port.name != "uiToBackend") {
+                console.log("Invalid port name: " + port.name);
+                return;
+            }
+            
+            port.onMessage.addListener(function(result) {
+                processSearchResult(result);
+            });
         });
+        
+        $('#searchbox').focus();
     });
-
-   firstLayout();
-   document.searchForm.elements['searchBox'].focus();
-}
 
 // Send request to backend for displaying a cached bookmark page
 function requestCachedPage(id) {
@@ -108,7 +109,8 @@ function processSearchResult(result) {
 
 </script>
 </head>
-<body onLoad="init()">
+
+<body>
     
   <!-- Moves content vertically down to the center-->
 <div id="floater"></div>
