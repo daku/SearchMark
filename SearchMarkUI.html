@@ -88,7 +88,10 @@ function doSearch(searchwords) {
 
     $('body').append('<div id = "resultspage"></div>');
     $('#resultspage').append(results_page_top_html);
-    $('#resultspage').append('<div id="resultspagebtm"></div>');
+    $('#resultspage').append(
+    '<div id="resultspagebtm"><div id="waitmsg">' +
+      'Please Wait. Future searches will be much faster!' +
+      '</div></div>');
 
     chrome.extension.sendRequest(
         {method: 'search', keywords: searchwords}, 
@@ -137,7 +140,8 @@ function processSearchResult(result) {
             '<a href="#" class="resultactions" onclick="requestCachedPage(' + result.id +
             ');">(Offline Version)</a><p><br/>';
     }
-
+      
+    $('#waitmsg').remove();
     $('#resultspagebtm').append(resultString);
 }
 

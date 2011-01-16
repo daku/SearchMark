@@ -1,5 +1,2 @@
-* Progress bar
-* Smart start
 * Broken bookmarks
-
-
+* Smart start: maybe someday. DB does not handle sudden shut down well.
