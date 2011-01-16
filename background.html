@@ -231,14 +231,12 @@ console.debug("Opened SearchMark database.");
 // SearchMarkDB.getStoredBookmarks();
 // SearchMarkDB.clear();
 // SearchMarkDB.purge();
-// localStorage['initialized'] = "no";
+// localStorage['initialized'] = 0;
 
 // initialize once only. Populate the database
 // by retrieving and storing bookmarked pages, and
-// URLs. If initialized but want to reinitialize,
-// just set localStorage['initialized'] to "no".
-if (!localStorage['initialized'] || localStorage['initialized'] !=
-    "yes") {
+// URLs.
+if (!localStorage['initialized']) {
     SearchMarkDB.createTable();
 
     chrome.bookmarks.getTree(
@@ -247,7 +245,9 @@ if (!localStorage['initialized'] || localStorage['initialized'] !=
     	    initBookmarkDatabase(bookmarks);
         });
 
-    localStorage['initialized'] = "yes";
+    localStorage['initialized'] = 1;
+} else {
+    localStorage['initialized']++;
 }
 
 // ========================== CORE ===============
@@ -265,7 +265,7 @@ chrome.extension.onRequest.addListener(handleRequest);
 chrome.bookmarks.onChanged.addListener(
     function(id, changeInfo)
     {
-        if (localStorage['initialized'] != "yes")
+        if (!localStorage['initialized'])
             return;
 
         getAndStoreBookmarkContent( 
@@ -279,9 +279,9 @@ chrome.bookmarks.onChanged.addListener(
 chrome.bookmarks.onCreated.addListener(
     function(id, newBookmark)
     {
-        if (localStorage['initialized'] != "yes")
+        if (!localStorage['initialized'])
             return;
-
+        
         getAndStoreBookmarkContent( 
             {id : id,
              url : newBookmark.url,
@@ -293,7 +293,7 @@ chrome.bookmarks.onCreated.addListener(
 chrome.bookmarks.onRemoved.addListener(
     function(id, removeInfo)
     {
-        if (localStorage['initialized'] != "yes")
+        if (!localStorage['initialized'])
             return;
 
         SearchMarkDB.removeBookmarkedPage(id);
