@@ -1,0 +1,3 @@
+#!/bin/bash
+
+zip -r releases/SearchMark_v$1.zip background.html manifest.json SearchMarkUI.html rawPageView.html jquery-1.4.4.min.js LICENSE README COPYRIGHT style.css images/*.png
