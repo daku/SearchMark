@@ -7,7 +7,7 @@ After installation, the extension will download and index all your bookmarked pa
 
 The source code for this extension is available at http://github.com/daku/SearchMark. To report issues related to this extension, please visit http://github.com/daku/SearchMark/issues. You can also send an email to searchmark2010@gmail.com with your suggestions, feature requests, issues, or comments.
 
-Authors: Akshay Dua (http://github.com/daku), Candy Yiu (http://github.com/cheta), and Doug Hughes (http://blog.alagad.com/, http://alagad.com/). We would like to thank Doug Hughes for suggesting many new features, and agreeing to merge extensions (both, interestingly, called SearchMark).
+Authors: Akshay Dua (http://github.com/daku), Candy Yiu (http://github.com/cheta), and Doug Hughes (http://blog.alagad.com/, http://alagad.com/). We would like to thank Doug Hughes for suggesting many new features, teaching us a lot through his own bookmark search extension, and agreeing to merge extensions (both, interestingly, called SearchMark).
 
 A note on excessive permissions:
 
@@ -18,6 +18,8 @@ Our extension is open source under the terms of the GNU GPL license. Please feel
 Changelog
 =========
 
+* v2.2: modified extension description
+* v2.1: missed a file in the previous release, fixing
 * v2.0: Improved search, offline bookmarked page access, improved usability and looks 
 * v1.1: Added missing icons
 
