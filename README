@@ -18,6 +18,7 @@ Our extension is open source under the terms of the GNU GPL license. Please feel
 Changelog
 =========
 
+* v2.3: fixed major upgrade bug which rendered SearchMark unusable
 * v2.2: modified extension description
 * v2.1: missed a file in the previous release, fixing
 * v2.0: Improved search, offline bookmarked page access, improved usability and looks 

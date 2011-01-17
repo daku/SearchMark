@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -596,7 +596,10 @@
      width="471.07465"
      id="rect2816-5"
      style="fill:#009900;fill-opacity:1;stroke:none"
-     ry="33.473824" />
+     ry="33.473824"
+     inkscape:export-filename="/home/akshay/Coding/Web/SearchMark/images/welcome-template.png"
+     inkscape:export-xdpi="90"
+     inkscape:export-ydpi="90" />
   <text
      xml:space="preserve"
      style="font-size:458.1857605px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;opacity:0.33183857;fill:#000000;fill-opacity:1;stroke:none;filter:url(#filter3800);font-family:Rufscript;-inkscape-font-specification:Bitstream Charter"
