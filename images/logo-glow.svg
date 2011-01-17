@@ -15,10 +15,10 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.47 r22583"
-   sodipodi:docname="logo.svg"
+   sodipodi:docname="logo-glow.svg"
    inkscape:export-filename="/home/akshay/Coding/Web/SearchMark/images/logo128.png"
-   inkscape:export-xdpi="31.030001"
-   inkscape:export-ydpi="31.030001">
+   inkscape:export-xdpi="37.380001"
+   inkscape:export-ydpi="37.380001">
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -1348,7 +1348,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>

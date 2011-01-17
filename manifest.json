@@ -1,7 +1,7 @@
 {
   "name": "SearchMark",
-  "version": "2.1",
-  "description": "Search your bookmarks: find bookmarked pages
+  "version": "2.2",
+  "description": "Find your bookmarked pages
   by searching not only their titles and web addresses, but also their
   contents!",
   "minimum_chrome_version": "5.0",
