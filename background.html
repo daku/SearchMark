@@ -222,38 +222,37 @@ SearchMarkDB.purge =
         });
 }
 
-// ================== INIT ===============
+// ========================== CORE ===============
 
 // open the database each time extension loads.
 SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
-// SearchMarkDB.getStoredBookmarks();
-// SearchMarkDB.clear();
-// SearchMarkDB.purge();
-// localStorage['initialized'] = 0;
+localStorage['newversion'] = 2.3;
 
-// initialize once only. Populate the database
-// by retrieving and storing bookmarked pages, and
-// URLs.
-if (!localStorage['initialized']) {
-    SearchMarkDB.createTable();
+// Important for new installs
+if(!localStorage['oldversion'])
+{ // not defined
 
-    chrome.bookmarks.getTree(
-        function(bookmarks)
-        {
-    	    initBookmarkDatabase(bookmarks);
-        });
-
-    // number of times the welcome page was opened
-    localStorage['uivisits'] = 0;
-
-    localStorage['initialized'] = 1;
-} else {
-    localStorage['initialized']++;
+    // could not do upgrades before this version :)
+    localStorage['oldversion'] = 1.1; 
 }
 
-// ========================== CORE ===============
+if(localStorage['newversion'] > localStorage['oldversion']) 
+{
+    localStorage['oldversion'] = localStorage['newversion'];
+
+    // will not be true for new installs
+    if(localStorage['initialized'])
+    { // already installed. Do upgrade.
+
+        console.log("Upgrading to version " + localStorage['newversion']);
+
+        cleanupStorage();
+    }
+}
+
+init();
 
 chrome.browserAction.onClicked.addListener(
     function(tab)
@@ -312,6 +311,47 @@ chrome.bookmarks.onRemoved.addListener(
 // );
 
 // ================= CORE API ===================
+
+function init()
+{
+    console.log("Initializing...");
+
+    // initialize once only. Populate the database
+    // by retrieving and storing bookmarked pages, and
+    // URLs.
+    if (!localStorage['initialized'] || 
+        localStorage['initialized'] == 0) 
+    {
+        SearchMarkDB.createTable();
+        
+        chrome.bookmarks.getTree(
+            function(bookmarks)
+            {
+    	        initBookmarkDatabase(bookmarks);
+            });
+
+        // number of times the welcome page was opened
+        localStorage['uivisits'] = 0;
+        
+        localStorage['initialized'] = 1;
+    } else {
+        localStorage['initialized']++;
+    }
+}
+
+function cleanupStorage()
+{
+    console.log("Cleaning up...");
+
+    console.log("Clearing database tables");
+    SearchMarkDB.clear();
+
+    console.log("Removing the tables");
+    SearchMarkDB.purge();
+
+    console.log("Setting to 'not initialized'");
+    localStorage['initialized'] = 0;
+}
 
 function handleRequest(request, sender, callback)
 {
