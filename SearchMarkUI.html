@@ -47,7 +47,21 @@ $(document).ready(
                 processSearchResult(result);
             });
         });
-        
+
+        localStorage['uivisits']++;
+
+        /* stop showing tip after 2 UI visits */
+        if(localStorage['uivisits'] < 4)
+            $('#welcomesearchbox').append(
+                '<div id="tiparea"><p><b>Tip:</b> Use the "*"; ' +
+                    'to search for words beginning with, ' + 
+                    'say "mar", simply type "mar*".</div>');
+
+        if(localStorage['uivisits'] == 3)
+            $('#tiparea').delay(3000).fadeOut(
+                'slow',
+                function () {});
+
         $('#searchbox').focus();
         $('#searchbox').keyup(function(e) {
 	        if(e.keyCode == 13) {
@@ -123,7 +137,12 @@ function leavePage(pagename) {
 //     textual context.
 function processSearchResult(result) {
     if(result.matchType == "DONE") {
-        resultString = "&nbsp;";
+        // search error?
+        if(result.error) {
+            resultString = result.error;
+        } else {
+            resultString = "&nbsp;";
+        }
 
         $('#searchbox').focus();
         $('#searchbox').keyup(function(e) {
@@ -164,15 +183,9 @@ function processSearchResult(result) {
     onmousedown="$('#searchbutton').addClass('searchbuttonpressed')"
             onmouseup="$('#searchbutton').removeClass('searchbuttonpressed');leavePage('#welcomepage')">
     Search</button>
-
-    <!-- Tip -->
-    <div id="tiparea">
-      <p>
-      Tip
-    </div>
     
-    </div>
-    </div>
+  </div>
+  </div>
 
 </body>
 </html>

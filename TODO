@@ -1,2 +1,5 @@
 * Broken bookmarks
 * Smart start: maybe someday. DB does not handle sudden shut down well.
+* progress bar (maybe if we do smart start)
+* Random search tips
+* Update bookmarked page on next visit

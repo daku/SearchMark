@@ -184,7 +184,7 @@ SearchMarkDB.doSearch =
                           'ORDER BY time DESC',
                           [],
                           callback,
-                          getCallback("search", "pages", 0));
+                          getCallback("search pages", "malformed input", 0));
         });
 }
 
@@ -244,6 +244,9 @@ if (!localStorage['initialized']) {
         {
     	    initBookmarkDatabase(bookmarks);
         });
+
+    // number of times the welcome page was opened
+    localStorage['uivisits'] = 0;
 
     localStorage['initialized'] = 1;
 } else {
@@ -475,6 +478,29 @@ function getCallback(cbname, msg, type)
             console.debug("failed: " + cbname + " " + msg);
             console.log("  " + e.message);
         }            
+        break;
+    case "search pages":
+        if (type == 1) // success callback
+            return function(tx, r)
+        {
+            console.debug("succeded: " + cbname + " " + msg);
+        }
+        else
+            return function(tx, e)
+        {
+            console.debug("failed: " + cbname + " " + msg);
+            console.log("  " + e.message);
+
+            // search pages failed, tell user
+            var result = {};
+
+            result.matchType = "DONE";
+            result.error = 'Sorry, I am not sure what you are ' +
+                'looking for. Could you be missing a quote (") ' +
+                'while searching for a phrase?';
+
+            gPort.postMessage(result);
+        }
         break;
     default:
         if (type == 1) // success callback
