@@ -1,53 +1,37 @@
 SearchMark
 ==========
 
-When you need the information from a page you once bookmarked, but
-just can't find it anymore, SearchMark can help. The SearchMark Google
-Chrome Extension allows you to search your bookmarked pages, and we
-don't mean just the page title or its cryptic web address, but the
-page contents as well! We are sure that you will find this extension
-helpful in quickly and easily finding your bookmarks.
+When you are looking for a page you once bookmarked, but just can't find it anymore, SearchMark can help. The SearchMark Google Chrome Extension allows you to search your bookmarked pages, and we don't mean just the page title or its cryptic web address, but the page contents as well! SearchMark even makes bookmark management a breeze: no more sorting into folders; simply add the bookmark and search it using SearchMark!
 
-After installation, the extension will index all your bookmarked
-pages. At anytime, click on the SearchMark icon in the toolbar to open
-and use the search page. Later, every time you add, remove, or change
-a bookmark the index will get updated and so will your search.
+After installation, the extension will download and index all your bookmarked pages. At anytime, click on the SearchMark icon in the toolbar to open and use the search page. Later, every time you add, remove, or change a bookmark the index will get updated and so will your search.
 
-The source code for this extension is available at
-http://github.com/daku/SearchMark. To report issues related to this
-extension, please visit http://github.com/daku/SearchMark/issues. You
-can also send an email to searchmark2010@gmail.com with your
-suggestions, feature requests, issues, or comments.
+The source code for this extension is available at http://github.com/daku/SearchMark. To report issues related to this extension, please visit http://github.com/daku/SearchMark/issues. You can also send an email to searchmark2010@gmail.com with your suggestions, feature requests, issues, or comments.
+
+Authors: Akshay Dua (http://github.com/daku), Candy Yiu (http://github.com/cheta), and Doug Hughes (http://blog.alagad.com/, http://alagad.com/). We would like to thank Doug Hughes for suggesting many new features, and agreeing to merge extensions (both, interestingly, called SearchMark).
 
 A note on excessive permissions:
 
-At the time of installation, a permission box pops up saying that this
-extension has access to all your data on all your web sites. We
-certainly don't want *any* of your data, and do not need access to all
-your web sites. The only permissions we need, is for the extension to
-download your bookmarked pages. It seems the extension mechanism does
-not provide us with a way to get these permissions without asking for
-the whole enchilada of permissions. We apologize for requesting such
-wide permissions, but assure you that our extension does not in any
-way read, use, or communicate any of your personal
-information. Further, bookmarked web sites are downloaded to *only*
-your machine, and from addresses that you have already provided as
-part of the bookmarked information.
+At the time of installation, a permission box pops up saying that this extension has access to all your data on all your web sites. We certainly don't want *any* of your data, and do not need access to all your web sites. The only permissions we need, is for the extension to download your bookmarked pages. It seems the extension mechanism does not provide us with a way to get these permissions without asking for the whole enchilada of permissions. We apologize for requesting such wide permissions, but assure you that our extension does not in any way read, use, or communicate any of your personal information. Further, bookmarked web sites are downloaded to *only* your machine, and from addresses that you have already provided as part of the bookmarked information.
 
-Our extension is open source under the terms of the GNU GPL
-license. Please feel free to browse through our extension source code
-at http://github.com/daku/SearchMark to verify its data access
-requirements.
+Our extension is open source under the terms of the GNU GPL license. Please feel free to browse through our extension source code at http://github.com/daku/SearchMark to verify its data access requirements.
+
+Changelog
+=========
+
+* v2.0: Improved search, offline bookmarked page access, improved usability and looks 
+* v1.1: Added missing icons
 
 Extension Architecture
 ======================
 
 The extension has a front-end and a back-end. The front-end is the
 user interface and the back-end is the core search functionality like
-indexing and performing the search. Two main technologies used by the
-extension are HTML5 databases --- to store the bookmarks and their
-page contents --- and the Javascript regular expression engine to
-perform the searches.
+indexing and search. The main technology used by the
+extension is HTML5 SQLite databases (to store the bookmarks and their
+page contents). SQLite has virtual tables that provide a full-text
+index for table contents. We simply download a user's bookmarked pages
+into a virtual table, and use standard SQL search queries to look for
+keywords input by the user.
 
 Extension Files:
 
@@ -55,11 +39,12 @@ Extension Files:
 ** background.html: [Initialize] Add bookmarks and associated page 
 contents to database on first use. [Manage] Add, remove, or update 
 bookmarks in this database as when the user does the same. [Search]
-given a set of keywords from the UI search the database for them.
+given a set of keywords from the UI, search the database for them.
 
 * For the UI
-** icon.png: SearchMark logo
-** cheta, could you update this?
+** images
+** SearchMarkUI.html
+** rawPageView.html (to display stored html pages)
 
 * General 
 ** manifest.json: mandatory permission file for all Google chrome 
@@ -68,6 +53,7 @@ extensions
 Authors: 
 Akshay Dua (http://github.com/daku)
 Candy Yiu (http://github.com/cheta)
+Doug Hughes (http://blog.alagad.com/, http://alagad.com/)
 
 Source Code:
 http://github.com/daku/SearchMark
