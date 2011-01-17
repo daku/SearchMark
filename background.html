@@ -88,9 +88,9 @@ SearchMarkDB.addBookmarkedPage =
             tx.executeSql('INSERT INTO rawpages(id, htmlpage) ' +
                           'VALUES (?,?)', 
                           [newId, newHtmlPage ], 
-                          getCallback("insert page", "raw " + newId +
+                          getCallback("insert page raw", newId +
                                       " " + newUrl, 1),  
-                          getCallback("insert page", "raw " + newId +
+                          getCallback("insert page raw", newId +
                                       " " + newUrl, 0)); 
         });
 }
@@ -107,8 +107,8 @@ SearchMarkDB.removeBookmarkedPage =
                           getCallback("remove page", theId, 0));
 
             tx.executeSql('DELETE FROM rawpages WHERE id=?', [ theId ], 
-                          getCallback("remove page", "raw " + theId, 1), 
-                          getCallback("remove page", "raw " + theId, 0));
+                          getCallback("remove page raw", theId, 1), 
+                          getCallback("remove page raw", theId, 0));
         });
 }
 
@@ -224,17 +224,19 @@ SearchMarkDB.purge =
 
 // ========================== CORE ===============
 
+// prepare to initialize
+
 // open the database each time extension loads.
 SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
-localStorage['newversion'] = 2.3;
+localStorage['newversion'] = 2.4;
 
 // Important for new installs
 if(!localStorage['oldversion'])
 { // not defined
 
-    // could not do upgrades before this version :)
+    // set to a version before upgrade functionality ever existed
     localStorage['oldversion'] = 1.1; 
 }
 
@@ -245,10 +247,10 @@ if(localStorage['newversion'] > localStorage['oldversion'])
     // will not be true for new installs
     if(localStorage['initialized'])
     { // already installed. Do upgrade.
+        console.log("Upgrading to version " +
+                    localStorage['newversion']);
 
-        console.log("Upgrading to version " + localStorage['newversion']);
-
-        cleanupStorage();
+        doUpgrade();
     }
 }
 
@@ -281,6 +283,8 @@ chrome.bookmarks.onChanged.addListener(
 chrome.bookmarks.onCreated.addListener(
     function(id, newBookmark)
     {
+        localStorage['totalbookmarks']++;
+
         if (!localStorage['initialized'])
             return;
         
@@ -295,6 +299,8 @@ chrome.bookmarks.onCreated.addListener(
 chrome.bookmarks.onRemoved.addListener(
     function(id, removeInfo)
     {
+        localStorage['totalbookmarks']--;
+
         if (!localStorage['initialized'])
             return;
 
@@ -316,6 +322,11 @@ function init()
 {
     console.log("Initializing...");
 
+    // if bookmarks in DB not in sync with actual bookmarks
+    if(localStorage['added'] && localStorage['totalbookmarks'] &&
+       localStorage['added'] != localStorage['totalbookmarks'])
+        cleanupStorage();
+
     // initialize once only. Populate the database
     // by retrieving and storing bookmarked pages, and
     // URLs.
@@ -327,18 +338,27 @@ function init()
         chrome.bookmarks.getTree(
             function(bookmarks)
             {
+                localStorage['added'] = 0;
+                localStorage['totalbookmarks'] = 0;
     	        initBookmarkDatabase(bookmarks);
             });
 
         // number of times the welcome page was opened
         localStorage['uivisits'] = 0;
-        
+
         localStorage['initialized'] = 1;
     } else {
         localStorage['initialized']++;
     }
 }
 
+// any upgrade functionality should be placed here
+function doUpgrade()
+{
+    cleanupStorage();
+}
+
+// clean up stored configuration variables
 function cleanupStorage()
 {
     console.log("Cleaning up...");
@@ -488,7 +508,11 @@ function initBookmarkDatabase(bookmarks)
             if (bookmark.url && 
                 bookmark.url.match("^https?://*")) 
             { // url exists and is well formed
+
                 console.debug("Adding " + bookmark.url);
+
+                localStorage['totalbookmarks']++;
+
                 getAndStoreBookmarkContent(bookmark,
                                            SearchMarkDB.addBookmarkedPage);
             } else {
@@ -540,6 +564,36 @@ function getCallback(cbname, msg, type)
                 'while searching for a phrase?';
 
             gPort.postMessage(result);
+        }
+        break;
+    case "insert page raw":
+        if (type == 1) // success callback
+            return function(tx, r)
+        {
+            console.debug("succeded: " + cbname + " " + msg);
+            localStorage['added']++;
+        }
+        else
+            // failure callback
+            return function(tx, e)
+        {
+            console.debug("failed: " + cbname + " " + msg);
+            console.log("  " + e.message);
+        }
+        break;
+    case "remove page raw":
+        if (type == 1) // success callback
+            return function(tx, r)
+        {
+            console.debug("succeded: " + cbname + " " + msg);
+            localStorage['added']--;
+        }
+        else
+            // failure callback
+            return function(tx, e)
+        {
+            console.debug("failed: " + cbname + " " + msg);
+            console.log("  " + e.message);
         }
         break;
     default:
