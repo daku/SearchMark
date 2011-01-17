@@ -1,1 +1,2 @@
-zip -r packaged/SearchMark_v1.0.zip background.html manifest.json SearchMarkUI.html icon.png LICENSE README space.png COPYRIGHT logoLarge.png style.css logo16.png logo48.png logo128.png
+zip -r packaged/SearchMark_v2.0.zip background.html manifest.json
+SearchMarkUI.html rawPageView.html LICENSE README COPYRIGHT style.css images/*.png
