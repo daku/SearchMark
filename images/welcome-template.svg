@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -499,15 +499,6 @@
          d="m 83.028694,509.53299 -112.5379,-60.8292 -113.909094,58.22103 23.07589,-125.82715 -90.57133,-90.34271 126.799564,-16.93625 57.93294,-114.05589 55.29056,115.35997 126.375856,19.85229 -92.628126,88.23264 20.17164,126.32527 z"
          style="fill:#fff944;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0" />
     </clipPath>
-    <filter
-       inkscape:collect="always"
-       id="filter3800"
-       color-interpolation-filters="sRGB">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="6.3738829"
-         id="feGaussianBlur3802" />
-    </filter>
     <inkscape:perspective
        id="perspective3025"
        inkscape:persp3d-origin="0.5 : 0.33333333 : 1"
@@ -554,6 +545,14 @@
          style="stop-color:#FFED00"
          id="stop18" />
     </radialGradient>
+    <filter
+       inkscape:collect="always"
+       id="filter3710">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="12.747766"
+         id="feGaussianBlur3712" />
+    </filter>
   </defs>
   <sodipodi:namedview
      pagecolor="#ffffff"
@@ -569,7 +568,7 @@
      id="namedview2878"
      showgrid="false"
      inkscape:zoom="0.85602279"
-     inkscape:cx="251.74988"
+     inkscape:cx="248.6344"
      inkscape:cy="235.43628"
      inkscape:window-x="0"
      inkscape:window-y="24"
@@ -580,41 +579,19 @@
   <rect
      inkscape:transform-center-y="1348.4151"
      inkscape:transform-center-x="528.12923"
-     y="18.770258"
-     x="18.770258"
-     height="311.01941"
-     width="471.07465"
-     id="rect2816-5-1"
-     style="fill:#000000;fill-opacity:1;stroke:none;filter:url(#filter3848)"
-     ry="33.473824" />
-  <rect
-     inkscape:transform-center-y="1348.4151"
-     inkscape:transform-center-x="528.12923"
      y="10.964616"
      x="19.466486"
      height="311.01941"
      width="471.07465"
      id="rect2816-5"
-     style="fill:#009900;fill-opacity:1;stroke:none"
+     style="fill:#ffffff;fill-opacity:1;stroke:none"
      ry="33.473824"
      inkscape:export-filename="/home/akshay/Coding/Web/SearchMark/images/welcome-template.png"
      inkscape:export-xdpi="90"
      inkscape:export-ydpi="90" />
   <text
      xml:space="preserve"
-     style="font-size:458.1857605px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;opacity:0.33183857;fill:#000000;fill-opacity:1;stroke:none;filter:url(#filter3800);font-family:Rufscript;-inkscape-font-specification:Bitstream Charter"
-     x="584.27618"
-     y="503.08304"
-     id="text2888-4"
-     transform="matrix(0.16662209,0,0,0.16662209,26.965242,59.077515)"><tspan
-       sodipodi:role="line"
-       x="584.27618"
-       y="503.08304"
-       id="tspan2892-7"
-       style="font-weight:bold;-inkscape-font-specification:Bitstream Charter Bold">SearchMark</tspan></text>
-  <text
-     xml:space="preserve"
-     style="font-size:76.34386444px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#f9f9f9;fill-opacity:1;stroke:none;font-family:Rufscript;-inkscape-font-specification:Bitstream Charter"
+     style="font-size:76.34386444000000438px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#008000;fill-opacity:1;stroke:none;font-family:Rufscript;-inkscape-font-specification:Bitstream Charter"
      x="122.07439"
      y="138.39116"
      id="text2888"><tspan
@@ -622,7 +599,7 @@
        x="122.07439"
        y="138.39116"
        id="tspan2892"
-       style="font-weight:bold;fill:#f9f9f9;-inkscape-font-specification:Bitstream Charter Bold">SearchMark</tspan></text>
+       style="font-weight:bold;fill:#008000;-inkscape-font-specification:Bitstream Charter Bold">SearchMark</tspan></text>
   <g
      id="Layer_1"
      transform="matrix(0.25343392,0,0,0.25343392,7.785982,16.615422)">

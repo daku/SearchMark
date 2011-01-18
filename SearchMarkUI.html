@@ -4,7 +4,7 @@
 
 <title>Search Bookmarked Pages</title>
 
-<link rel="shortcut icon" href="logo.png"> 
+<link rel="shortcut icon" href="images/logo16.png"> 
 <link rel="stylesheet" type="text/css" href="style.css"/>
 
 <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
@@ -53,9 +53,9 @@ $(document).ready(
         /* stop showing tip after 2 UI visits */
         if(localStorage['uivisits'] < 4)
             $('#welcomesearchbox').append(
-                '<div id="tiparea"><p><b>Tip:</b> Use the "*"; ' +
-                    'to search for words beginning with, ' + 
-                    'say "mar", simply type "mar*".</div>');
+                '<div id="tiparea"><p><b>Tip:</b> Use the "*". ' +
+                    'For example, to search for words beginning ' +
+                    'with "mar", simply type "mar*".</div>');
 
         if(localStorage['uivisits'] == 3)
             $('#tiparea').delay(3000).fadeOut(
@@ -103,25 +103,19 @@ function doSearch(searchwords) {
     $('body').append('<div id = "resultspage"></div>');
     $('#resultspage').append(results_page_top_html);
     $('#resultspage').append(
-    '<div id="resultspagebtm"><div id="waitmsg">' +
-      'Please Wait. Future searches will be much faster!' +
-      '</div></div>');
+    '<div id="resultspagebtm"></div>');
 
     chrome.extension.sendRequest(
         {method: 'search', keywords: searchwords}, 
         function() {});
 }
 
-function leavePage(pagename) {
-    
-    $(pagename).fadeOut(
-        'fast',
-        function ()
-        {
-            var searchwords = $('#searchbox').val();
-            $(pagename).remove();
-            doSearch(searchwords);
-        });
+function leavePage(pagename) 
+{
+    var searchwords = $('#searchbox').val();
+    $(pagename).remove();
+    $('body').css('cursor', 'wait');
+    doSearch(searchwords);
 }
 
 // Each search result will be delivered here.
@@ -137,6 +131,7 @@ function leavePage(pagename) {
 //     textual context.
 function processSearchResult(result) {
     if(result.matchType == "DONE") {
+        $('body').css('cursor', 'auto');
         // search error?
         if(result.error) {
             resultString = result.error;
@@ -160,7 +155,6 @@ function processSearchResult(result) {
             ');">(Offline Version)</a><p><br/>';
     }
       
-    $('#waitmsg').remove();
     $('#resultspagebtm').append(resultString);
 }
 

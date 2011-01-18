@@ -230,7 +230,7 @@ SearchMarkDB.purge =
 SearchMarkDB.open();
 console.debug("Opened SearchMark database.");
 
-localStorage['newversion'] = 2.4;
+localStorage['newversion'] = 2.5;
 
 // Important for new installs
 if(!localStorage['oldversion'])
@@ -242,8 +242,6 @@ if(!localStorage['oldversion'])
 
 if(localStorage['newversion'] > localStorage['oldversion']) 
 {
-    localStorage['oldversion'] = localStorage['newversion'];
-
     // will not be true for new installs
     if(localStorage['initialized'])
     { // already installed. Do upgrade.
@@ -252,6 +250,8 @@ if(localStorage['newversion'] > localStorage['oldversion'])
 
         doUpgrade();
     }
+
+    localStorage['oldversion'] = localStorage['newversion'];
 }
 
 init();
@@ -355,7 +355,8 @@ function init()
 // any upgrade functionality should be placed here
 function doUpgrade()
 {
-    cleanupStorage();
+    if(localStorage['oldversion'] < 2.4)
+        cleanupStorage();
 }
 
 // clean up stored configuration variables

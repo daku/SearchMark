@@ -27,7 +27,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -57,15 +57,6 @@
          d="m 83.028694,509.53299 -112.5379,-60.8292 -113.909094,58.22103 23.07589,-125.82715 -90.57133,-90.34271 126.799564,-16.93625 57.93294,-114.05589 55.29056,115.35997 126.375856,19.85229 -92.628126,88.23264 20.17164,126.32527 z"
          style="fill:#fff944;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0" />
     </clipPath>
-    <filter
-       id="filter4184-6"
-       inkscape:collect="always"
-       color-interpolation-filters="sRGB">
-      <feGaussianBlur
-         id="feGaussianBlur4186-2"
-         stdDeviation="7.4974493"
-         inkscape:collect="always" />
-    </filter>
     <clipPath
        id="clipPath4333"
        clipPathUnits="userSpaceOnUse">
@@ -86,15 +77,6 @@
          d="m 83.028694,509.53299 -112.5379,-60.8292 -113.909094,58.22103 23.07589,-125.82715 -90.57133,-90.34271 126.799564,-16.93625 57.93294,-114.05589 55.29056,115.35997 126.375856,19.85229 -92.628126,88.23264 20.17164,126.32527 z"
          style="fill:#fff944;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0" />
     </clipPath>
-    <filter
-       id="filter4184"
-       inkscape:collect="always"
-       color-interpolation-filters="sRGB">
-      <feGaussianBlur
-         id="feGaussianBlur4186"
-         stdDeviation="7.4974493"
-         inkscape:collect="always" />
-    </filter>
     <clipPath
        id="clipPath4325"
        clipPathUnits="userSpaceOnUse">
@@ -105,19 +87,6 @@
          d="m 83.028694,509.53299 -112.5379,-60.8292 -113.909094,58.22103 23.07589,-125.82715 -90.57133,-90.34271 126.799564,-16.93625 57.93294,-114.05589 55.29056,115.35997 126.375856,19.85229 -92.628126,88.23264 20.17164,126.32527 z"
          style="fill:#fff944;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0" />
     </clipPath>
-    <filter
-       height="1.248962"
-       y="-0.12448106"
-       width="1.2376447"
-       x="-0.11882235"
-       id="filter4287"
-       inkscape:collect="always"
-       color-interpolation-filters="sRGB">
-      <feGaussianBlur
-         id="feGaussianBlur4289"
-         stdDeviation="18.140522"
-         inkscape:collect="always" />
-    </filter>
     <linearGradient
        id="linearGradient3879">
       <stop
@@ -321,15 +290,6 @@
          d="m 83.028694,509.53299 -112.5379,-60.8292 -113.909094,58.22103 23.07589,-125.82715 -90.57133,-90.34271 126.799564,-16.93625 57.93294,-114.05589 55.29056,115.35997 126.375856,19.85229 -92.628126,88.23264 20.17164,126.32527 z"
          style="fill:#fff944;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0" />
     </clipPath>
-    <filter
-       id="filter4184-6-1"
-       inkscape:collect="always"
-       color-interpolation-filters="sRGB">
-      <feGaussianBlur
-         id="feGaussianBlur4186-2-6"
-         stdDeviation="7.4974493"
-         inkscape:collect="always" />
-    </filter>
     <clipPath
        id="clipPath4333-0"
        clipPathUnits="userSpaceOnUse">
@@ -350,15 +310,6 @@
          d="m 83.028694,509.53299 -112.5379,-60.8292 -113.909094,58.22103 23.07589,-125.82715 -90.57133,-90.34271 126.799564,-16.93625 57.93294,-114.05589 55.29056,115.35997 126.375856,19.85229 -92.628126,88.23264 20.17164,126.32527 z"
          style="fill:#fff944;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0" />
     </clipPath>
-    <filter
-       id="filter4184-0"
-       inkscape:collect="always"
-       color-interpolation-filters="sRGB">
-      <feGaussianBlur
-         id="feGaussianBlur4186-6"
-         stdDeviation="7.4974493"
-         inkscape:collect="always" />
-    </filter>
     <linearGradient
        id="linearGradient3879-0">
       <stop
@@ -548,28 +499,6 @@
          d="m 83.028694,509.53299 -112.5379,-60.8292 -113.909094,58.22103 23.07589,-125.82715 -90.57133,-90.34271 126.799564,-16.93625 57.93294,-114.05589 55.29056,115.35997 126.375856,19.85229 -92.628126,88.23264 20.17164,126.32527 z"
          style="fill:#fff944;fill-opacity:1;stroke:#000000;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dashoffset:0" />
     </clipPath>
-    <filter
-       height="1.248962"
-       y="-0.12448106"
-       width="1.2376447"
-       x="-0.11882235"
-       id="filter4287-5"
-       inkscape:collect="always"
-       color-interpolation-filters="sRGB">
-      <feGaussianBlur
-         id="feGaussianBlur4289-4"
-         stdDeviation="18.140522"
-         inkscape:collect="always" />
-    </filter>
-    <filter
-       inkscape:collect="always"
-       id="filter5786"
-       color-interpolation-filters="sRGB">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="8.1818493"
-         id="feGaussianBlur5788" />
-    </filter>
     <filter
        inkscape:collect="always"
        id="filter3800"
@@ -1874,21 +1803,7 @@
      inkscape:current-layer="svg2876" />
   <text
      xml:space="preserve"
-     style="font-size:458.1857605px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;opacity:0.33183857;fill:#000000;fill-opacity:1;stroke:none;filter:url(#filter3800);font-family:Rufscript;-inkscape-font-specification:Bitstream Charter"
-     x="580.27618"
-     y="493.08304"
-     id="text2888-4"
-     transform="matrix(0.09455168,0,0,0.09455168,1.3207195,1.8942781)"
-     inkscape:export-xdpi="90.004669"
-     inkscape:export-ydpi="90.004669"><tspan
-       sodipodi:role="line"
-       x="580.27618"
-       y="493.08304"
-       id="tspan2892-7"
-       style="font-weight:bold;-inkscape-font-specification:Bitstream Charter Bold">SearchMark</tspan></text>
-  <text
-     xml:space="preserve"
-     style="font-size:43.32223129px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#f9f9f9;fill-opacity:1;stroke:none;font-family:Rufscript;-inkscape-font-specification:Bitstream Charter"
+     style="font-size:43.32223128999999773px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#f2f2f2;fill-opacity:1;stroke:none;font-family:Rufscript;-inkscape-font-specification:Bitstream Charter"
      x="55.291561"
      y="46.901756"
      id="text2888"
@@ -1898,7 +1813,7 @@
        x="55.291561"
        y="46.901756"
        id="tspan2892"
-       style="font-weight:bold;fill:#f9f9f9;-inkscape-font-specification:Bitstream Charter Bold">SearchMark</tspan></text>
+       style="font-weight:bold;fill:#f2f2f2;-inkscape-font-specification:Bitstream Charter Bold">SearchMark</tspan></text>
   <g
      transform="matrix(0.20664082,0,0,0.20664082,210.82631,-59.192057)"
      inkscape:label="Layer 1"
