@@ -57,7 +57,8 @@ SearchMarkDB.createTable =
         {
             tx.executeSql('CREATE VIRTUAL TABLE pages ' + 
                           'USING fts3(id INTEGER PRIMARY KEY, ' + 
-                          'url TEXT, title TEXT, page TEXT, time INTEGER)',
+                          'url TEXT, title TEXT, page TEXT, ' + 
+                          'time INTEGER, img TEXT)',
                           [],
                           getCallback("create table", "pages", 1),
                           getCallback("create table", "pages", 0));
@@ -72,16 +73,17 @@ SearchMarkDB.createTable =
 
 // add a bookmark and associated page to the database
 SearchMarkDB.addBookmarkedPage =
-    function(newId, newUrl, newTitle, newPlainPage, newTime, newHtmlPage)
+    function(newId, newUrl, newTitle, newPlainPage, newTime,
+             newPageImg, newHtmlPage)
 {
     SearchMarkDB.db.transaction(
         function(tx)
         {
             // html-free page for searching
             tx.executeSql('INSERT INTO pages(id, url, title, page, ' +
-                          'time) VALUES (?,?,?,?,?)',
+                          'time, img) VALUES (?,?,?,?,?,?)',
                           [ newId, newUrl, newTitle, newPlainPage,
-                            newTime ],
+                            newTime, newPageImg ],
                           getCallback("insert page", newId + " " +
                                       newUrl, 1), 
                           getCallback("insert page", newId + " " +
@@ -118,14 +120,15 @@ SearchMarkDB.removeBookmarkedPage =
 // update an already stored bookmarked page
 SearchMarkDB.updateBookmarkedPage =
     function(theId, theUrl, theTitle, thePlainPage, theTime,
-             theHtmlPage)
+             thePageImg, theHtmlPage)
 {
     SearchMarkDB.db.transaction(
         function(tx)
         {
             tx.executeSql('UPDATE pages SET url=?, ' + 
-                          'title=?, page=? WHERE id=?',
-                          [ theUrl, theTitle, thePlainPage, theId ],
+                          'title=?, page=?, img=? WHERE id=?',
+                          [ theUrl, theTitle, thePlainPage,
+                            thePageImg, theId ],
                           getCallback("update bookmark", theUrl, 1),
                           getCallback("update bookmark", theUrl, 0));
 
@@ -177,7 +180,7 @@ SearchMarkDB.doSearch =
     SearchMarkDB.db.transaction(
         function(tx)
         {
-            tx.executeSql('SELECT id,url,title, ' + 
+            tx.executeSql('SELECT id,url,title, img, ' + 
                           'snippet(pages, "' + uiHighlightStart +
                           '", "' + uiHighlightEnd + 
                           '", "' + uiEllipses +
@@ -353,12 +356,15 @@ function init()
     } else {
         localStorage['initialized']++;
     }
+    
+    // debug and test
+    // getUrlContent("http://www.sqlite.org/lang_altertable.html");
 }
 
 // any upgrade functionality should be placed here
 function doUpgrade()
 {
-    if(localStorage['oldversion'] < 2.4)
+    if(localStorage['oldversion'])
         cleanupStorage();
 }
 
@@ -430,11 +436,16 @@ function searchBookmarkedPagesCb(tx, r)
     var result = {};
 
     for ( var i = 0; i < r.rows.length; i++) {
+        // deprecated, remove eventually
+        result.matchType = "page";
+
         result.id = r.rows.item(i).id;
         result.url = r.rows.item(i).url;
         result.title = r.rows.item(i).title;
         result.text = r.rows.item(i).snippet;
-        result.matchType = "page";
+        result.img = r.rows.item(i).img;
+
+        console.log(result.img);
 
         gPort.postMessage(result);
 
@@ -487,15 +498,13 @@ function extractPageImg(page, url)
     if(imgstart == -1)
         return "";
 
-    var imgend = page.indexOf(">", imgstart);
+    // var imgend = page.indexOf(">", imgstart);
 
-    // if malformed html, screw it
-    if(imgend == -1)
-        return "";
+    // // if malformed html, screw it
+    // if(imgend == -1)
+    //     return "";
 
-    var imgtag = page.substring(imgstart, imgend + 1);
-
-    console.log(imgtag);
+    // var imgtag = page.substring(imgstart, imgend + 1);
 
     // fix src url of image if necessary
     var srcstart = page.indexOf("src", imgstart);
@@ -527,11 +536,9 @@ function extractPageImg(page, url)
 
     var src = page.substring(srcstart + 1, srcend);
 
-    console.log(src);
-
     if(src.indexOf("://", 0) != -1)
     { // full path
-        console.log("full path");
+        ;
     }
     else if(src[0] == '/')
     { // path from host url
@@ -546,7 +553,9 @@ function extractPageImg(page, url)
         src = parseUri(url).host + parseUri(url).directory + src;
     }
 
-    console.log(src);
+    console.debug("extracted image: " + src + ", url: " + url);
+
+    return src;
 }
 
 // debug and test function. Not called from core
@@ -592,21 +601,25 @@ function getAndStoreBookmarkContent(bookmark, storeInDB)
                     // add page to database
                     storeInDB(bookmark.id, bookmark.url,
                               bookmark.title, pageNoHtml,
-                              bookmark.dateAdded, this.responseText);
+                              bookmark.dateAdded,
+                              extractPageImg(this.responseText,
+                                             bookmark.url),
+                              this.responseText);
 
                     this.abort();
                 }
             } catch (e) {
                 console.log(e.message);
                 storeInDB(bookmark.id, bookmark.url, bookmark.title,
-                          "", "");
+                          bookmark.dateAdded, "", "", "");
             }
         }
 
         xhr.send();
     } catch (e) {
         console.log(e.message + bookmark.url);
-        storeInDB(bookmark.id, bookmark.url, bookmark.title, "", "");
+        storeInDB(bookmark.id, bookmark.url, bookmark.title,
+                  bookmark.dateAdded, "", "", "");
     }
 }
 

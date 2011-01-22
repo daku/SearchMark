@@ -146,12 +146,20 @@ function processSearchResult(result) {
         });
 
     } else {
+
+    if(result.img == "")
+    result.img = '<img src="" alt="No Image Available" ' +
+    'width=400 />'; 
+    else
+    result.img = '<img src="' + result.img + 
+    '" width=400 />';
+    
         resultString = 
             '<a href="' + result.url + '" target="_blank">' + result.title +'</a>' +
             '<br/>' + result.text + '<br/>' +
             '<span class="resulturl">' + result.url + '</span>&nbsp;' +
             '<a href="#" class="resultactions" onclick="requestCachedPage(' + result.id +
-            ');">(Offline Version)</a><p><br/>';
+            ');">(Offline Version)</a><br/>' + result.img + '<p><br/>';
     }
       
     $('#resultspagebtm').append(resultString);
